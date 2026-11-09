@@ -1,5 +1,4 @@
-from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -31,6 +30,7 @@ from app.schemas.token import (
 
 router = APIRouter()
 
+
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserRegister, db: Session = Depends(get_db)):
     # Validate password strength
@@ -41,8 +41,7 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == norm_email).first()
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A user with this email address already exists."
+            status_code=status.HTTP_409_CONFLICT, detail="A user with this email address already exists."
         )
 
     user = User(
@@ -54,11 +53,12 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         target_protein_g=user_in.target_protein_g,
         target_carbs_g=user_in.target_carbs_g,
         target_fat_g=user_in.target_fat_g,
-        timezone=user_in.timezone or "UTC"
+        timezone=user_in.timezone or "UTC",
     )
     db.add(user)
     db.flush()
     return user
+
 
 @router.post("/login", response_model=Token)
 @limiter.limit("15/minute")
@@ -86,8 +86,9 @@ def login(request: Request, user_in: UserLogin, db: Session = Depends(get_db)):
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
-        expires_in_seconds=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        expires_in_seconds=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
+
 
 @router.post("/refresh", response_model=Token)
 def refresh_token(token_req: RefreshTokenRequest, db: Session = Depends(get_db)):
@@ -96,17 +97,11 @@ def refresh_token(token_req: RefreshTokenRequest, db: Session = Depends(get_db))
     token_type: str = payload.get("type", "")
 
     if token_type != "refresh" or not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token."
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token.")
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
     new_access_token = create_access_token(user.user_id)
     new_refresh_token = create_refresh_token(user.user_id)
@@ -115,24 +110,21 @@ def refresh_token(token_req: RefreshTokenRequest, db: Session = Depends(get_db))
         access_token=new_access_token,
         refresh_token=new_refresh_token,
         token_type="bearer",
-        expires_in_seconds=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        expires_in_seconds=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
+
 @router.get("/me", response_model=UserOut)
-def get_current_user_profile(
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
+def get_current_user_profile(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     return user
 
+
 @router.patch("/me", response_model=UserOut)
 def update_current_user_profile(
-    profile_update: UserProfileUpdate,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    profile_update: UserProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:

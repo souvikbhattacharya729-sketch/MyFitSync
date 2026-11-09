@@ -1,7 +1,8 @@
-import pytest
 from datetime import date, timedelta
+
+import pytest
+
 from app.core.sports_science import (
-    ACWR_DISCLAIMER,
     calculate_acwr_rolling,
     calculate_brzycki_1rm,
     calculate_macro_split,
@@ -11,11 +12,13 @@ from app.core.sports_science import (
     compute_estimated_1rm,
 )
 
+
 def test_brzycki_known_values():
     # 100 kg for 5 reps: 100 * 36 / (37 - 5) = 3600 / 32 = 112.5 kg
     assert calculate_brzycki_1rm(100.0, 5) == 112.5
     # 1 rep max should be exact weight
     assert calculate_brzycki_1rm(140.0, 1) == 140.0
+
 
 def test_brzycki_invalid_reps():
     with pytest.raises(ValueError, match="strictly greater than 0"):
@@ -27,11 +30,13 @@ def test_brzycki_invalid_reps():
     with pytest.raises(ValueError, match="reps >= 37"):
         calculate_brzycki_1rm(100.0, 45)
 
+
 def test_wathan_known_values():
     # 100 kg for 5 reps: 10000 / (48.8 + 53.8 * exp(-0.375))
     e1rm = calculate_wathan_1rm(100.0, 5)
     assert 114.0 <= e1rm <= 118.0
     assert calculate_wathan_1rm(100.0, 1) == 100.0
+
 
 def test_compute_estimated_1rm_ranges():
     # Reps <= 10: Valid, no warning
@@ -55,11 +60,13 @@ def test_compute_estimated_1rm_ranges():
     assert p40 is None
     assert "exceeds maximum boundary" in warn40
 
+
 def test_calculate_set_volume():
     assert calculate_set_volume(100.0, 5, 3) == 1500.0
     assert calculate_set_volume(0.0, 10, 3) == 0.0
     with pytest.raises(ValueError):
         calculate_set_volume(-10.0, 5, 3)
+
 
 def test_calculate_reps_in_reserve():
     assert calculate_reps_in_reserve(None) is None
@@ -70,6 +77,7 @@ def test_calculate_reps_in_reserve():
         calculate_reps_in_reserve(11.0)
     with pytest.raises(ValueError, match="half-point increments"):
         calculate_reps_in_reserve(8.3)
+
 
 def test_acwr_zero_chronic_and_insufficient_history():
     today = date(2026, 11, 9)
@@ -91,6 +99,7 @@ def test_acwr_zero_chronic_and_insufficient_history():
     assert res_zero["acwr"] is None
     assert res_zero["chronic_load"] == 0.0
 
+
 def test_acwr_calculated_zones():
     today = date(2026, 11, 9)
     # Balanced daily loads over 30 days
@@ -108,6 +117,7 @@ def test_acwr_calculated_zones():
     res_spike = calculate_acwr_rolling(loads_spike, target_date=today)
     assert res_spike["acwr"] > 1.5
     assert res_spike["zone"] == "overreaching"
+
 
 def test_calculate_macro_split():
     # 150g protein (600 kcal), 200g carbs (800 kcal), 60g fat (540 kcal) -> 1940 kcal

@@ -1,7 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import CheckConstraint, Column, Date, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
+
 from app.core.database import Base
+
 
 class Workout(Base):
     __tablename__ = "workouts"
@@ -17,7 +20,7 @@ class Workout(Base):
     estimated_1rm = Column(Float, nullable=True)
     total_volume = Column(Float, nullable=False)
     performed_on = Column(Date, nullable=False)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
 
     __table_args__ = (
         CheckConstraint("weight_kg >= 0", name="chk_workout_weight_nonneg"),

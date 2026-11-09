@@ -1,18 +1,22 @@
 """Initial database schema for MyFitSync
 
 Revision ID: 001_initial_schema
-Revises: 
+Revises:
 Create Date: 2026-11-09 10:00:00.000000
 
 """
+
 from typing import Sequence, Union
-from alembic import op
+
 import sqlalchemy as sa
+
+from alembic import op
 
 revision: str = "001_initial_schema"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
 
 def upgrade() -> None:
     # 1. users table
@@ -86,7 +90,7 @@ def upgrade() -> None:
         sa.CheckConstraint("fat_g IS NULL OR fat_g >= 0", name="chk_nutrition_fat_nonneg"),
         sa.CheckConstraint(
             "calories IS NOT NULL OR protein_g IS NOT NULL OR carbs_g IS NOT NULL OR fat_g IS NOT NULL OR meal_title IS NOT NULL",
-            name="chk_nutrition_at_least_one_field"
+            name="chk_nutrition_at_least_one_field",
         ),
     )
     op.create_index("ix_nutrition_user_id", "nutrition", ["user_id"])
@@ -105,11 +109,19 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("user_id", "logged_date", name="uq_readiness_user_date"),
-        sa.CheckConstraint("sleep_hours IS NULL OR (sleep_hours >= 0.0 AND sleep_hours <= 24.0)", name="chk_readiness_sleep_range"),
-        sa.CheckConstraint("soreness_score IS NULL OR (soreness_score >= 1.0 AND soreness_score <= 10.0)", name="chk_readiness_soreness_range"),
-        sa.CheckConstraint("resting_hr IS NULL OR (resting_hr > 0 AND resting_hr < 250)", name="chk_readiness_rhr_range"),
+        sa.CheckConstraint(
+            "sleep_hours IS NULL OR (sleep_hours >= 0.0 AND sleep_hours <= 24.0)", name="chk_readiness_sleep_range"
+        ),
+        sa.CheckConstraint(
+            "soreness_score IS NULL OR (soreness_score >= 1.0 AND soreness_score <= 10.0)",
+            name="chk_readiness_soreness_range",
+        ),
+        sa.CheckConstraint(
+            "resting_hr IS NULL OR (resting_hr > 0 AND resting_hr < 250)", name="chk_readiness_rhr_range"
+        ),
     )
     op.create_index("ix_daily_readiness_user_id", "daily_readiness", ["user_id"])
+
 
 def downgrade() -> None:
     op.drop_table("daily_readiness")

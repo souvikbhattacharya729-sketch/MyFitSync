@@ -6,10 +6,12 @@ from app.core.database import get_db
 
 router = APIRouter()
 
+
 @router.get("/health", status_code=status.HTTP_200_OK)
 def health_liveness():
     """Liveness probe: verifies process is alive and accepting requests."""
     return {"status": "ok", "service": "MyFitSync Backend"}
+
 
 @router.get("/health/ready", status_code=status.HTTP_200_OK)
 def health_readiness(db: Session = Depends(get_db)):
@@ -19,6 +21,5 @@ def health_readiness(db: Session = Depends(get_db)):
         return {"status": "ready", "database": "connected"}
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Database connection error: {str(e)}"
-        )
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Database connection error: {str(e)}"
+        ) from e

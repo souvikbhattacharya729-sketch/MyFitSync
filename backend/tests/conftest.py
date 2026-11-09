@@ -1,7 +1,7 @@
 import os
 import sys
+
 import pytest
-from datetime import date
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -11,14 +11,10 @@ from sqlalchemy.pool import StaticPool
 # Ensure app is in path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.core.config import settings
 from app.core.database import Base, get_db
 from app.core.security import create_access_token, get_password_hash
 from app.main import app
-from app.models.nutrition import Nutrition
-from app.models.readiness import DailyReadiness
 from app.models.user import User
-from app.models.workout import Workout
 
 # In-memory SQLite for rapid unit and API testing
 SQLITE_TEST_URL = "sqlite:///:memory:"
@@ -30,12 +26,14 @@ engine_test = create_engine(
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine_test)
 
+
 @pytest.fixture(autouse=True)
 def setup_test_db():
     Base.metadata.drop_all(bind=engine_test)
     Base.metadata.create_all(bind=engine_test)
     yield
     Base.metadata.drop_all(bind=engine_test)
+
 
 @pytest.fixture
 def db_session():
@@ -44,6 +42,7 @@ def db_session():
         yield session
     finally:
         session.close()
+
 
 @pytest.fixture
 def client(db_session):
@@ -64,6 +63,7 @@ def client(db_session):
         yield test_client
     app.dependency_overrides.clear()
 
+
 @pytest.fixture
 def test_user_a(db_session) -> User:
     user = User(
@@ -76,12 +76,13 @@ def test_user_a(db_session) -> User:
         target_protein_g=140.0,
         target_carbs_g=220.0,
         target_fat_g=60.0,
-        timezone="UTC"
+        timezone="UTC",
     )
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
     return user
+
 
 @pytest.fixture
 def test_user_b(db_session) -> User:
@@ -95,17 +96,19 @@ def test_user_b(db_session) -> User:
         target_protein_g=180.0,
         target_carbs_g=280.0,
         target_fat_g=80.0,
-        timezone="UTC"
+        timezone="UTC",
     )
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
     return user
 
+
 @pytest.fixture
 def auth_headers_user_a(test_user_a) -> dict:
     token = create_access_token(test_user_a.user_id)
     return {"Authorization": f"Bearer {token}"}
+
 
 @pytest.fixture
 def auth_headers_user_b(test_user_b) -> dict:

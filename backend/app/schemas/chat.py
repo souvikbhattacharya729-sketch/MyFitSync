@@ -1,22 +1,28 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+
 from pydantic import BaseModel, Field
+
 from app.schemas.nutrition import NutritionOut
 from app.schemas.readiness import ReadinessOut
 from app.schemas.workout import WorkoutOut
 
+
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
-    timezone: Optional[str] = None
+    timezone: str | None = None
+
 
 class ClarificationItem(BaseModel):
     field: str
-    exercise: Optional[str] = None
+    exercise: str | None = None
     question: str
+
 
 class SavedRecords(BaseModel):
     workouts: List[WorkoutOut] = Field(default_factory=list)
     nutrition: List[NutritionOut] = Field(default_factory=list)
     readiness: List[ReadinessOut] = Field(default_factory=list)
+
 
 class ChatResponse(BaseModel):
     reply: str

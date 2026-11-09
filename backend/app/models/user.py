@@ -1,8 +1,11 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import CheckConstraint, Column, DateTime, Float, Index, Integer, String
+from datetime import UTC, datetime
+
+from sqlalchemy import CheckConstraint, Column, DateTime, Float, Integer, String
 from sqlalchemy.orm import relationship
+
 from app.core.database import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -17,7 +20,7 @@ class User(Base):
     target_carbs_g = Column(Float, nullable=True)
     target_fat_g = Column(Float, nullable=True)
     timezone = Column(String(50), nullable=False, default="UTC")
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
 
     __table_args__ = (
         CheckConstraint("bodyweight_kg > 0", name="chk_user_bodyweight_positive"),
@@ -29,5 +32,9 @@ class User(Base):
 
     # Cascade relationships: user deletion removes all their data
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
-    nutrition_entries = relationship("Nutrition", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
-    readiness_entries = relationship("DailyReadiness", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
+    nutrition_entries = relationship(
+        "Nutrition", back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
+    readiness_entries = relationship(
+        "DailyReadiness", back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )

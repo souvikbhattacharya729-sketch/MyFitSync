@@ -1,5 +1,7 @@
 from datetime import date
+
 from fastapi import status
+
 
 def test_ops_health_checks(client):
     res_liveness = client.get("/api/v1/health")
@@ -10,6 +12,7 @@ def test_ops_health_checks(client):
     assert res_ready.status_code == status.HTTP_200_OK
     assert res_ready.json()["status"] == "ready"
 
+
 def test_workouts_crud_flow(client, auth_headers_user_a):
     # 1. Create Workout
     create_payload = {
@@ -19,7 +22,7 @@ def test_workouts_crud_flow(client, auth_headers_user_a):
         "reps": 5,
         "sets": 3,
         "rpe": 8.5,
-        "performed_on": str(date.today())
+        "performed_on": str(date.today()),
     }
     res_create = client.post("/api/v1/workouts", json=create_payload, headers=auth_headers_user_a)
     assert res_create.status_code == status.HTTP_201_CREATED
@@ -55,6 +58,7 @@ def test_workouts_crud_flow(client, auth_headers_user_a):
     res_verify = client.get(f"/api/v1/workouts/{workout_id}", headers=auth_headers_user_a)
     assert res_verify.status_code == status.HTTP_404_NOT_FOUND
 
+
 def test_nutrition_crud_and_daily_totals(client, auth_headers_user_a):
     today = str(date.today())
     payload = {
@@ -63,7 +67,7 @@ def test_nutrition_crud_and_daily_totals(client, auth_headers_user_a):
         "protein_g": 50.0,
         "carbs_g": 80.0,
         "fat_g": 20.0,
-        "eaten_on": today
+        "eaten_on": today,
     }
     # Create
     res_create = client.post("/api/v1/nutrition", json=payload, headers=auth_headers_user_a)
@@ -81,6 +85,7 @@ def test_nutrition_crud_and_daily_totals(client, auth_headers_user_a):
     res_del = client.delete(f"/api/v1/nutrition/{nutr_id}", headers=auth_headers_user_a)
     assert res_del.status_code == status.HTTP_204_NO_CONTENT
 
+
 def test_readiness_upsert_flow(client, auth_headers_user_a):
     today = str(date.today())
     # Create first entry
@@ -95,6 +100,7 @@ def test_readiness_upsert_flow(client, auth_headers_user_a):
     assert res2.status_code == status.HTTP_201_CREATED
     assert res2.json()["sleep_hours"] == 8.0
     assert res2.json()["soreness_score"] == 4.0  # Preserved previous non-null field
+
 
 def test_chat_endpoint_persistence_and_idempotency(client, auth_headers_user_a):
     headers = dict(auth_headers_user_a)
@@ -116,6 +122,7 @@ def test_chat_endpoint_persistence_and_idempotency(client, auth_headers_user_a):
     assert data2["reply"] == data1["reply"]
     assert data2["saved"]["workouts"][0]["id"] == data1["saved"]["workouts"][0]["id"]
 
+
 def test_dashboard_endpoint(client, auth_headers_user_a):
     res = client.get("/api/v1/dashboard", headers=auth_headers_user_a)
     assert res.status_code == status.HTTP_200_OK
@@ -127,6 +134,7 @@ def test_dashboard_endpoint(client, auth_headers_user_a):
     assert "acwr" in data
     assert "recent_activity" in data
     assert "is_empty" in data
+
 
 def test_analytics_endpoints(client, auth_headers_user_a):
     assert client.get("/api/v1/analytics/acwr", headers=auth_headers_user_a).status_code == 200

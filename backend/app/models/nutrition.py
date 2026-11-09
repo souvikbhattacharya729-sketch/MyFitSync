@@ -1,7 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import CheckConstraint, Column, Date, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
+
 from app.core.database import Base
+
 
 class Nutrition(Base):
     __tablename__ = "nutrition"
@@ -14,7 +17,7 @@ class Nutrition(Base):
     carbs_g = Column(Float, nullable=True)
     fat_g = Column(Float, nullable=True)
     eaten_on = Column(Date, nullable=False)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
 
     __table_args__ = (
         CheckConstraint("calories IS NULL OR calories >= 0", name="chk_nutrition_calories_nonneg"),
@@ -23,7 +26,7 @@ class Nutrition(Base):
         CheckConstraint("fat_g IS NULL OR fat_g >= 0", name="chk_nutrition_fat_nonneg"),
         CheckConstraint(
             "calories IS NOT NULL OR protein_g IS NOT NULL OR carbs_g IS NOT NULL OR fat_g IS NOT NULL OR meal_title IS NOT NULL",
-            name="chk_nutrition_at_least_one_field"
+            name="chk_nutrition_at_least_one_field",
         ),
         Index("ix_nutrition_user_eaten", "user_id", eaten_on.desc()),
     )

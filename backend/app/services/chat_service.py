@@ -1,5 +1,6 @@
 from datetime import date
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
+
 from sqlalchemy.orm import Session
 
 from app.core.sports_science import calculate_set_volume, compute_estimated_1rm
@@ -13,17 +14,12 @@ from app.schemas.readiness import ReadinessOut
 from app.schemas.workout import WorkoutOut
 from app.services.nlp_parser import DeterministicNLPParser, ParseResult
 
+
 class ChatService:
-    def __init__(self, parser: Optional[DeterministicNLPParser] = None):
+    def __init__(self, parser: DeterministicNLPParser | None = None):
         self.parser = parser or DeterministicNLPParser()
 
-    def process_chat_message(
-        self,
-        db: Session,
-        user: User,
-        message: str,
-        timezone: Optional[str] = None
-    ) -> ChatResponse:
+    def process_chat_message(self, db: Session, user: User, message: str, timezone: str | None = None) -> ChatResponse:
         user_tz = timezone or user.timezone or "UTC"
         parse_result: ParseResult = self.parser.parse(message, user_timezone=user_tz)
 
@@ -59,7 +55,7 @@ class ChatService:
                 rpe=pw.rpe,
                 estimated_1rm=primary_e1rm,
                 total_volume=volume,
-                performed_on=pw.performed_on or date.today()
+                performed_on=pw.performed_on or date.today(),
             )
             db.add(workout_record)
             saved_workouts.append(workout_record)
@@ -73,7 +69,7 @@ class ChatService:
                 protein_g=pn.protein_g,
                 carbs_g=pn.carbs_g,
                 fat_g=pn.fat_g,
-                eaten_on=pn.eaten_on or date.today()
+                eaten_on=pn.eaten_on or date.today(),
             )
             db.add(nutr_record)
             saved_nutrition.append(nutr_record)
@@ -83,10 +79,7 @@ class ChatService:
             target_date = pr.logged_date or date.today()
             existing = (
                 db.query(DailyReadiness)
-                .filter(
-                    DailyReadiness.user_id == user.user_id,
-                    DailyReadiness.logged_date == target_date
-                )
+                .filter(DailyReadiness.user_id == user.user_id, DailyReadiness.logged_date == target_date)
                 .first()
             )
             if existing:
@@ -104,7 +97,7 @@ class ChatService:
                     sleep_hours=pr.sleep_hours,
                     soreness_score=pr.soreness_score,
                     resting_hr=pr.resting_hr,
-                    logged_date=target_date
+                    logged_date=target_date,
                 )
                 db.add(readiness_record)
                 saved_readiness.append(readiness_record)
@@ -130,11 +123,7 @@ class ChatService:
             reply_text = "I received your message."
 
         clarification_items = [
-            ClarificationItem(
-                field=c.field,
-                exercise=c.exercise,
-                question=c.question
-            )
+            ClarificationItem(field=c.field, exercise=c.exercise, question=c.question)
             for c in parse_result.clarifications
         ]
 
@@ -147,12 +136,9 @@ class ChatService:
             saved=SavedRecords(
                 workouts=[WorkoutOut.model_validate(w) for w in saved_workouts],
                 nutrition=[NutritionOut.model_validate(n) for n in saved_nutrition],
-                readiness=[ReadinessOut.model_validate(r) for r in saved_readiness]
+                readiness=[ReadinessOut.model_validate(r) for r in saved_readiness],
             ),
             clarifications=clarification_items,
             warnings=warnings,
-            metrics={
-                "session_volume_kg": round(session_volume, 1),
-                "best_e1rm": best_e1rm
-            }
+            metrics={"session_volume_kg": round(session_volume, 1), "best_e1rm": best_e1rm},
         )

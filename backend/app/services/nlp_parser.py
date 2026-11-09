@@ -3,30 +3,64 @@ import os
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 from zoneinfo import ZoneInfo
 
 NUMBER_WORDS = {
-    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4,
-    "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
-    "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
-    "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17,
-    "eighteen": 18, "nineteen": 19, "twenty": 20
+    "zero": 0,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+    "twenty": 20,
 }
 
 MONTH_MAP = {
-    "jan": 1, "january": 1, "feb": 2, "february": 2,
-    "mar": 3, "march": 3, "apr": 4, "april": 4,
-    "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
-    "aug": 8, "august": 8, "sep": 9, "september": 9,
-    "oct": 10, "october": 10, "nov": 11, "november": 11,
-    "dec": 12, "december": 12
+    "jan": 1,
+    "january": 1,
+    "feb": 2,
+    "february": 2,
+    "mar": 3,
+    "march": 3,
+    "apr": 4,
+    "april": 4,
+    "may": 5,
+    "jun": 6,
+    "june": 6,
+    "jul": 7,
+    "july": 7,
+    "aug": 8,
+    "august": 8,
+    "sep": 9,
+    "september": 9,
+    "oct": 10,
+    "october": 10,
+    "nov": 11,
+    "november": 11,
+    "dec": 12,
+    "december": 12,
 }
+
 
 def load_exercise_aliases() -> Dict[str, List[str]]:
     alias_path = os.path.join(os.path.dirname(__file__), "exercise_aliases.json")
     if os.path.exists(alias_path):
-        with open(alias_path, "r", encoding="utf-8") as f:
+        with open(alias_path, encoding="utf-8") as f:
             return json.load(f)
     return {
         "bench_press": ["bench", "bench press", "flat bench"],
@@ -34,10 +68,12 @@ def load_exercise_aliases() -> Dict[str, List[str]]:
         "deadlift": ["deadlift", "deadlifts"],
         "overhead_press": ["overhead press", "ohp", "military press"],
         "barbell_row": ["row", "rows", "barbell row"],
-        "pull_up": ["pull up", "pull ups", "pull-up", "pull-ups"]
+        "pull_up": ["pull up", "pull ups", "pull-up", "pull-ups"],
     }
 
+
 EXERCISE_ALIASES = load_exercise_aliases()
+
 
 @dataclass
 class ParsedWorkout:
@@ -46,31 +82,35 @@ class ParsedWorkout:
     weight_kg: float
     reps: int
     sets: int
-    rpe: Optional[float] = None
-    performed_on: Optional[date] = None
-    original_unit: Optional[str] = None
+    rpe: float | None = None
+    performed_on: date | None = None
+    original_unit: str | None = None
+
 
 @dataclass
 class ParsedNutrition:
-    meal_title: Optional[str] = None
-    calories: Optional[float] = None
-    protein_g: Optional[float] = None
-    carbs_g: Optional[float] = None
-    fat_g: Optional[float] = None
-    eaten_on: Optional[date] = None
+    meal_title: str | None = None
+    calories: float | None = None
+    protein_g: float | None = None
+    carbs_g: float | None = None
+    fat_g: float | None = None
+    eaten_on: date | None = None
+
 
 @dataclass
 class ParsedReadiness:
-    sleep_hours: Optional[float] = None
-    soreness_score: Optional[float] = None
-    resting_hr: Optional[int] = None
-    logged_date: Optional[date] = None
+    sleep_hours: float | None = None
+    soreness_score: float | None = None
+    resting_hr: int | None = None
+    logged_date: date | None = None
+
 
 @dataclass
 class Clarification:
     field: str
-    exercise: Optional[str] = None
+    exercise: str | None = None
     question: str = ""
+
 
 @dataclass
 class ParseResult:
@@ -81,13 +121,14 @@ class ParseResult:
     warnings: List[str] = field(default_factory=list)
     unparsed_clauses: List[str] = field(default_factory=list)
 
+
 class DeterministicNLPParser:
     """
     Deterministic rule-based pipeline for parsing fitness text entries.
     Designed behind the ParseResult interface so an LLM adapter can be substituted seamlessly.
     """
 
-    def __init__(self, exercise_aliases: Optional[Dict[str, List[str]]] = None):
+    def __init__(self, exercise_aliases: Dict[str, List[str]] | None = None):
         self.aliases = exercise_aliases or EXERCISE_ALIASES
 
     def normalize(self, text: str) -> str:
@@ -100,6 +141,7 @@ class DeterministicNLPParser:
             h = float(m.group(1))
             mins = float(m.group(2))
             return f"{h + round(mins / 60.0, 2)} hours"
+
         s = re.sub(r"(\d+)\s*h\s*(\d+)\s*m(?:in(?:ute)?s?)?", h_m_replacer, s)
 
         # Unify units
@@ -115,9 +157,7 @@ class DeterministicNLPParser:
     def segment_clauses(self, text: str) -> List[str]:
         # Protect commas that are followed by continuation phrases (e.g., ", 3 sets", ", 5 reps", ", 250 g carbs", ", 70g fat", ", @8")
         protected = re.sub(
-            r",\s*(?=\d+\s*(?:sets?|reps?|g\s*(?:protein|carbs?|fat)|kcal|calories)|(?:rpe|@)|\bx\s*\d+)",
-            " ",
-            text
+            r",\s*(?=\d+\s*(?:sets?|reps?|g\s*(?:protein|carbs?|fat)|kcal|calories)|(?:rpe|@)|\bx\s*\d+)", " ", text
         )
         # Protect decimal numbers (e.g. 7.5 or 8.5) from being split by periods
         protected = re.sub(r"(\d+)\.(\d+)", r"\1__DEC__\2", protected)
@@ -134,7 +174,7 @@ class DeterministicNLPParser:
             tz = ZoneInfo(user_tz_name)
         except Exception:
             tz = ZoneInfo("UTC")
-            
+
         now = datetime.now(tz)
         today = now.date()
 
@@ -179,7 +219,7 @@ class DeterministicNLPParser:
 
         return today
 
-    def find_exercise(self, text: str) -> Optional[Tuple[str, str]]:
+    def find_exercise(self, text: str) -> Tuple[str, str] | None:
         """Matches canonical exercise name and raw exercise string."""
         for canonical, alias_list in self.aliases.items():
             for alias in alias_list:
@@ -212,11 +252,13 @@ class DeterministicNLPParser:
                 # Check if it was an empty or unidentifiable clause
                 # If clause has numbers with no context, request clarification
                 raw_nums = re.findall(r"\b\d+(?:\.\d+)?\b", clause)
-                if raw_nums and not any(kw in clause for kw in ["set", "rep", "kg", "lb", "cal", "kcal", "hour", "hr", "sleep", "rhr"]):
+                if raw_nums and not any(
+                    kw in clause for kw in ["set", "rep", "kg", "lb", "cal", "kcal", "hour", "hr", "sleep", "rhr"]
+                ):
                     result.clarifications.append(
                         Clarification(
                             field="unknown_measurement",
-                            question=f"I noticed '{clause}' with number(s) {', '.join(raw_nums)} but no unit or context. Could you clarify what this measurement is for?"
+                            question=f"I noticed '{clause}' with number(s) {', '.join(raw_nums)} but no unit or context. Could you clarify what this measurement is for?",
                         )
                     )
                 else:
@@ -233,9 +275,9 @@ class DeterministicNLPParser:
             return False
 
         logged_date = self.resolve_date(clause, user_tz, is_sleep=has_sleep)
-        sleep_hours: Optional[float] = None
-        soreness_score: Optional[float] = None
-        resting_hr: Optional[int] = None
+        sleep_hours: float | None = None
+        soreness_score: float | None = None
+        resting_hr: int | None = None
 
         if has_sleep:
             m = re.search(r"(?:slept|sleep)\s*(?:for\s*)?(\d+(?:\.\d+)?)\s*(?:h|hrs|hours?)?", clause)
@@ -245,7 +287,7 @@ class DeterministicNLPParser:
                     result.clarifications.append(
                         Clarification(
                             field="sleep_hours",
-                            question=f"Sleep duration ({val} hours) is outside the valid physiological range of 0 to 24 hours. Please re-enter your sleep duration."
+                            question=f"Sleep duration ({val} hours) is outside the valid physiological range of 0 to 24 hours. Please re-enter your sleep duration.",
                         )
                     )
                     return True
@@ -262,7 +304,7 @@ class DeterministicNLPParser:
                     result.clarifications.append(
                         Clarification(
                             field="soreness_score",
-                            question=f"Soreness score ({val}) must be between 1 and 10. Please clarify your soreness level."
+                            question=f"Soreness score ({val}) must be between 1 and 10. Please clarify your soreness level.",
                         )
                     )
                     return True
@@ -278,7 +320,7 @@ class DeterministicNLPParser:
                     result.clarifications.append(
                         Clarification(
                             field="resting_hr",
-                            question=f"Resting heart rate ({val} bpm) is out of valid range (1 - 249 bpm). Please clarify."
+                            question=f"Resting heart rate ({val} bpm) is out of valid range (1 - 249 bpm). Please clarify.",
                         )
                     )
                     return True
@@ -301,7 +343,7 @@ class DeterministicNLPParser:
                     sleep_hours=sleep_hours,
                     soreness_score=soreness_score,
                     resting_hr=resting_hr,
-                    logged_date=logged_date
+                    logged_date=logged_date,
                 )
             )
             return True
@@ -319,10 +361,10 @@ class DeterministicNLPParser:
             return False
 
         eaten_date = self.resolve_date(clause, user_tz)
-        cal_val: Optional[float] = None
-        pro_val: Optional[float] = None
-        carb_val: Optional[float] = None
-        fat_val: Optional[float] = None
+        cal_val: float | None = None
+        pro_val: float | None = None
+        carb_val: float | None = None
+        fat_val: float | None = None
 
         cal_m = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:calories|kcal)\b", clause)
         if cal_m:
@@ -349,12 +391,17 @@ class DeterministicNLPParser:
             result.clarifications.append(
                 Clarification(
                     field="nutrition_macros",
-                    question=f"Logged '{meal_title}'. Would you like to add calories or macros for this meal?"
+                    question=f"Logged '{meal_title}'. Would you like to add calories or macros for this meal?",
                 )
             )
 
         if cal_val is not None or pro_val is not None or carb_val is not None or fat_val is not None or meal_title:
-            if result.nutrition and result.nutrition[-1].eaten_on == eaten_date and not meal_title and result.nutrition[-1].meal_title == "Meal":
+            if (
+                result.nutrition
+                and result.nutrition[-1].eaten_on == eaten_date
+                and not meal_title
+                and result.nutrition[-1].meal_title == "Meal"
+            ):
                 existing = result.nutrition[-1]
                 if cal_val is not None:
                     existing.calories = (existing.calories or 0.0) + cal_val
@@ -372,7 +419,7 @@ class DeterministicNLPParser:
                         protein_g=pro_val,
                         carbs_g=carb_val,
                         fat_g=fat_val,
-                        eaten_on=eaten_date
+                        eaten_on=eaten_date,
                     )
                 )
             return True
@@ -388,7 +435,7 @@ class DeterministicNLPParser:
         performed_on = self.resolve_date(clause, user_tz)
 
         # Extract RPE if present (ensure @100kg is not mistaken for RPE)
-        rpe_val: Optional[float] = None
+        rpe_val: float | None = None
         rpe_m = re.search(r"(?:(?:at\s+)?rpe\s*(\d+(?:\.\d+)?)|@\s*(\d+(?:\.\d+)?)(?!\s*(?:kg|lb)))", clause)
         if rpe_m:
             rpe_str = rpe_m.group(1) or rpe_m.group(2)
@@ -399,7 +446,7 @@ class DeterministicNLPParser:
                         Clarification(
                             field="rpe",
                             exercise=canonical_ex,
-                            question=f"RPE {cand_rpe} for {raw_ex} is out of the valid 1.0–10.0 range. Please clarify."
+                            question=f"RPE {cand_rpe} for {raw_ex} is out of the valid 1.0–10.0 range. Please clarify.",
                         )
                     )
                     return True
@@ -408,7 +455,7 @@ class DeterministicNLPParser:
         # Pattern 1: "100 kg for 5 reps, 3 sets", "100 kg for 5 reps 3 sets", or "70 kg for 8 reps x 3"
         p1 = re.search(
             r"(\d+(?:\.\d+)?)\s*(kg|lb)\s+(?:for\s+)?(\d+)\s*reps?(?:\s*(?:x|,|\band\b)?\s*(\d+)\s*sets?|\s*x\s*(\d+))?",
-            clause
+            clause,
         )
         if p1:
             raw_weight = float(p1.group(1))
@@ -418,57 +465,51 @@ class DeterministicNLPParser:
             if not sets_str:
                 result.clarifications.append(
                     Clarification(
-                        field="sets",
-                        exercise=canonical_ex,
-                        question=f"How many sets of {raw_ex} did you perform?"
+                        field="sets", exercise=canonical_ex, question=f"How many sets of {raw_ex} did you perform?"
                     )
                 )
                 return True
             sets = int(sets_str)
-            return self._record_workout(result, canonical_ex, raw_ex, raw_weight, unit, reps, sets, rpe_val, performed_on)
+            return self._record_workout(
+                result, canonical_ex, raw_ex, raw_weight, unit, reps, sets, rpe_val, performed_on
+            )
 
         # Pattern 2: "3 sets of 5 at 100 kg" or "3 sets of 5 reps at 100 kg"
-        p2 = re.search(
-            r"(\d+)\s*sets?\s+of\s+(\d+)(?:\s*reps?)?\s+(?:at|@)\s*(\d+(?:\.\d+)?)\s*(kg|lb)",
-            clause
-        )
+        p2 = re.search(r"(\d+)\s*sets?\s+of\s+(\d+)(?:\s*reps?)?\s+(?:at|@)\s*(\d+(?:\.\d+)?)\s*(kg|lb)", clause)
         if p2:
             sets = int(p2.group(1))
             reps = int(p2.group(2))
             raw_weight = float(p2.group(3))
             unit = p2.group(4)
-            return self._record_workout(result, canonical_ex, raw_ex, raw_weight, unit, reps, sets, rpe_val, performed_on)
+            return self._record_workout(
+                result, canonical_ex, raw_ex, raw_weight, unit, reps, sets, rpe_val, performed_on
+            )
 
         # Pattern 3: "3x5 @ 100kg" or "3x5 at 100kg"
-        p3 = re.search(
-            r"(\d+)\s*x\s*(\d+)\s*(?:@|at)\s*(\d+(?:\.\d+)?)\s*(kg|lb)",
-            clause
-        )
+        p3 = re.search(r"(\d+)\s*x\s*(\d+)\s*(?:@|at)\s*(\d+(?:\.\d+)?)\s*(kg|lb)", clause)
         if p3:
             sets = int(p3.group(1))
             reps = int(p3.group(2))
             raw_weight = float(p3.group(3))
             unit = p3.group(4)
-            return self._record_workout(result, canonical_ex, raw_ex, raw_weight, unit, reps, sets, rpe_val, performed_on)
+            return self._record_workout(
+                result, canonical_ex, raw_ex, raw_weight, unit, reps, sets, rpe_val, performed_on
+            )
 
         # Pattern 4: "100kg x 5 x 3" (weight x reps x sets)
-        p4 = re.search(
-            r"(\d+(?:\.\d+)?)\s*(kg|lb)\s*x\s*(\d+)\s*x\s*(\d+)",
-            clause
-        )
+        p4 = re.search(r"(\d+(?:\.\d+)?)\s*(kg|lb)\s*x\s*(\d+)\s*x\s*(\d+)", clause)
         if p4:
             raw_weight = float(p4.group(1))
             unit = p4.group(2)
             reps = int(p4.group(3))
             sets = int(p4.group(4))
-            return self._record_workout(result, canonical_ex, raw_ex, raw_weight, unit, reps, sets, rpe_val, performed_on)
+            return self._record_workout(
+                result, canonical_ex, raw_ex, raw_weight, unit, reps, sets, rpe_val, performed_on
+            )
 
         # Pattern 5: "5x100kg" -> reps x weight or sets x weight? Missing sets or reps!
         # Requirement: "Sets/reps missing: ask. Never assume 1 set or 1 rep silently."
-        p5 = re.search(
-            r"(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*(kg|lb)",
-            clause
-        )
+        p5 = re.search(r"(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*(kg|lb)", clause)
         if p5:
             num = int(p5.group(1))
             raw_weight = float(p5.group(2))
@@ -477,7 +518,7 @@ class DeterministicNLPParser:
                 Clarification(
                     field="sets_or_reps",
                     exercise=canonical_ex,
-                    question=f"For {raw_ex} at {raw_weight}{unit}, did you mean {num} reps or {num} sets? Please specify both sets and reps."
+                    question=f"For {raw_ex} at {raw_weight}{unit}, did you mean {num} reps or {num} sets? Please specify both sets and reps.",
                 )
             )
             return True
@@ -487,9 +528,7 @@ class DeterministicNLPParser:
         if p_missing_sets:
             result.clarifications.append(
                 Clarification(
-                    field="sets",
-                    exercise=canonical_ex,
-                    question=f"How many sets of {raw_ex} did you perform?"
+                    field="sets", exercise=canonical_ex, question=f"How many sets of {raw_ex} did you perform?"
                 )
             )
             return True
@@ -499,7 +538,7 @@ class DeterministicNLPParser:
             Clarification(
                 field="workout_details",
                 exercise=canonical_ex,
-                question=f"I recognized {raw_ex}. Could you provide the weight, reps, and sets (e.g. '100 kg for 5 reps, 3 sets')?"
+                question=f"I recognized {raw_ex}. Could you provide the weight, reps, and sets (e.g. '100 kg for 5 reps, 3 sets')?",
             )
         )
         return True
@@ -513,8 +552,8 @@ class DeterministicNLPParser:
         unit: str,
         reps: int,
         sets: int,
-        rpe_val: Optional[float],
-        performed_on: date
+        rpe_val: float | None,
+        performed_on: date,
     ) -> bool:
         # Check validation limits
         if reps <= 0 or sets <= 0 or raw_weight < 0:
@@ -522,7 +561,7 @@ class DeterministicNLPParser:
                 Clarification(
                     field="validation",
                     exercise=canonical_ex,
-                    question=f"Invalid workout numbers for {raw_ex}: weight must be >= 0, reps > 0, sets > 0."
+                    question=f"Invalid workout numbers for {raw_ex}: weight must be >= 0, reps > 0, sets > 0.",
                 )
             )
             return True
@@ -533,9 +572,7 @@ class DeterministicNLPParser:
         if unit == "lb":
             final_weight_kg = round(raw_weight * 0.45359237, 2)
             orig_unit = "lb"
-            result.warnings.append(
-                f"Converted {raw_weight} lbs to {final_weight_kg} kg for {raw_ex}."
-            )
+            result.warnings.append(f"Converted {raw_weight} lbs to {final_weight_kg} kg for {raw_ex}.")
 
         result.workouts.append(
             ParsedWorkout(
@@ -546,7 +583,7 @@ class DeterministicNLPParser:
                 sets=sets,
                 rpe=rpe_val,
                 performed_on=performed_on,
-                original_unit=orig_unit
+                original_unit=orig_unit,
             )
         )
         return True

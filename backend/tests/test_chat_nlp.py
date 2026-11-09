@@ -1,5 +1,7 @@
 from datetime import date, timedelta
+
 from app.services.nlp_parser import DeterministicNLPParser
+
 
 def test_nlp_supported_workout_formats():
     parser = DeterministicNLPParser()
@@ -36,6 +38,7 @@ def test_nlp_supported_workout_formats():
     assert res4.workouts[0].reps == 5
     assert res4.workouts[0].sets == 3
 
+
 def test_nlp_rpe_formats():
     parser = DeterministicNLPParser()
     res1 = parser.parse("squat 100 kg for 5 reps, 3 sets at RPE 8")
@@ -43,6 +46,7 @@ def test_nlp_rpe_formats():
 
     res2 = parser.parse("bench 100 kg for 5 reps, 3 sets @8.5")
     assert res2.workouts[0].rpe == 8.5
+
 
 def test_nlp_missing_sets_reps_clarification():
     parser = DeterministicNLPParser()
@@ -58,6 +62,7 @@ def test_nlp_missing_sets_reps_clarification():
     assert len(res2.clarifications) == 1
     assert res2.clarifications[0].field == "sets"
 
+
 def test_nlp_pound_conversion():
     parser = DeterministicNLPParser()
     res = parser.parse("bench 220 lb for 5 reps, 3 sets")
@@ -66,6 +71,7 @@ def test_nlp_pound_conversion():
     assert res.workouts[0].weight_kg == 99.79
     assert res.workouts[0].original_unit == "lb"
     assert any("Converted 220" in w for w in res.warnings)
+
 
 def test_nlp_nutrition_formats():
     parser = DeterministicNLPParser()
@@ -86,6 +92,7 @@ def test_nlp_nutrition_formats():
     assert res_food.nutrition[0].protein_g is None
     assert len(res_food.clarifications) == 1
     assert res_food.clarifications[0].field == "nutrition_macros"
+
 
 def test_nlp_readiness_formats():
     parser = DeterministicNLPParser()
@@ -110,6 +117,7 @@ def test_nlp_readiness_formats():
     res5 = parser.parse("resting heart rate 52 bpm")
     assert res5.readiness[0].resting_hr == 52
 
+
 def test_nlp_multi_intent_single_message():
     parser = DeterministicNLPParser()
     msg = "Squats 100 kg 5 reps 3 sets at RPE 8, bench 70 kg for 8 reps, 3 sets, ate 2200 kcal with 160 g protein, slept 7 hours."
@@ -129,6 +137,7 @@ def test_nlp_multi_intent_single_message():
     assert len(res.readiness) == 1
     assert res.readiness[0].sleep_hours == 7.0
 
+
 def test_nlp_out_of_range_rejections():
     parser = DeterministicNLPParser()
 
@@ -143,6 +152,7 @@ def test_nlp_out_of_range_rejections():
     assert len(res_rpe.workouts) == 0
     assert len(res_rpe.clarifications) == 1
     assert "out of the valid 1.0–10.0 range" in res_rpe.clarifications[0].question
+
 
 def test_nlp_date_resolutions():
     parser = DeterministicNLPParser()

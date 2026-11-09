@@ -1,6 +1,6 @@
 import math
 from datetime import date, timedelta
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Tuple, Union
 
 ACWR_DISCLAIMER = (
     "Disclaimer: Acute:Chronic Workload Ratio (ACWR) and related metrics are descriptive "
@@ -12,17 +12,18 @@ RECOVERY_DISCLAIMER = (
     "lifestyle estimates and should never replace professional medical or diagnostic evaluation."
 )
 
+
 def calculate_brzycki_1rm(weight_kg: float, reps: int) -> float:
     """
     Computes Estimated 1-Rep Max (E1RM) using the Brzycki formula.
-    
+
     Formula:
         E1RM = weight_kg * (36 / (37 - reps))
-        
+
     Valid Range:
         - reps: 1 to 10 (scientific validity degrades significantly above 10 reps)
         - weight_kg: >= 0
-        
+
     Limitations:
         - Strictly invalid for reps >= 37 (results in division by zero or negative 1RM).
         - Underestimates/overestimates at very high repetitions.
@@ -35,21 +36,22 @@ def calculate_brzycki_1rm(weight_kg: float, reps: int) -> float:
         raise ValueError("Weight must be non-negative.")
     if reps == 1:
         return round(float(weight_kg), 2)
-    
+
     e1rm = weight_kg * (36.0 / (37.0 - reps))
     return round(float(e1rm), 2)
+
 
 def calculate_wathan_1rm(weight_kg: float, reps: int) -> float:
     """
     Computes Estimated 1-Rep Max (E1RM) using the Wathan formula.
-    
+
     Formula:
         E1RM = (100 * weight_kg) / (48.8 + 53.8 * exp(-0.075 * reps))
-        
+
     Valid Range:
         - reps: 1 to 10
         - weight_kg: >= 0
-        
+
     Limitations:
         - Accuracy degrades above 10-12 repetitions.
     """
@@ -59,18 +61,19 @@ def calculate_wathan_1rm(weight_kg: float, reps: int) -> float:
         raise ValueError("Weight must be non-negative.")
     if reps == 1:
         return round(float(weight_kg), 2)
-    
+
     denominator = 48.8 + 53.8 * math.exp(-0.075 * reps)
     e1rm = (100.0 * weight_kg) / denominator
     return round(float(e1rm), 2)
 
-def compute_estimated_1rm(weight_kg: float, reps: int) -> Tuple[Optional[float], Optional[float], Optional[str]]:
+
+def compute_estimated_1rm(weight_kg: float, reps: int) -> Tuple[float | None, float | None, str | None]:
     """
     Evaluates E1RM for storage and analytics.
-    
+
     Returns:
         (primary_e1rm, secondary_wathan_e1rm, warning_message)
-        
+
     Rules:
         - Uses Brzycki as primary E1RM when reps <= 10.
         - Provides Wathan as secondary value.
@@ -81,18 +84,19 @@ def compute_estimated_1rm(weight_kg: float, reps: int) -> Tuple[Optional[float],
         return None, None, None
     if reps >= 37:
         return None, None, "Reps >= 37 exceeds maximum boundary for 1RM estimation."
-    
+
     if reps > 12:
         return None, None, f"1RM not calculated: {reps} reps exceeds valid estimation boundary (max 12 reps)."
-    
+
     primary = calculate_brzycki_1rm(weight_kg, reps)
     wathan = calculate_wathan_1rm(weight_kg, reps)
-    
+
     warning = None
     if reps > 10:
         warning = f"Notice: 1RM accuracy declines when reps ({reps}) exceed 10."
-        
+
     return primary, wathan, warning
+
 
 def calculate_set_volume(weight_kg: float, reps: int, sets: int) -> float:
     """Computes total training volume: weight_kg * reps * sets."""
@@ -100,7 +104,8 @@ def calculate_set_volume(weight_kg: float, reps: int, sets: int) -> float:
         raise ValueError("Weight, reps, and sets must be non-negative.")
     return round(float(weight_kg * reps * sets), 2)
 
-def calculate_reps_in_reserve(rpe: Optional[float]) -> Optional[float]:
+
+def calculate_reps_in_reserve(rpe: float | None) -> float | None:
     """
     Calculates Reps In Reserve (RIR) based on RPE:
         RIR = 10 - RPE
@@ -115,6 +120,7 @@ def calculate_reps_in_reserve(rpe: Optional[float]) -> Optional[float]:
         raise ValueError("RPE must be in half-point increments (e.g., 7.5, 8.0).")
     return round(10.0 - rpe, 1)
 
+
 def calculate_acwr_rolling(
     daily_loads: Dict[date, float],
     target_date: date,
@@ -124,16 +130,16 @@ def calculate_acwr_rolling(
 ) -> Dict[str, Union[float, str, None]]:
     """
     Calculates rolling-average Acute:Chronic Workload Ratio (ACWR).
-    
+
     Method:
         - Acute window: past 7 days average daily load.
         - Chronic window: past 28 days average daily load.
         - ACWR = Acute Daily Average / Chronic Daily Average.
-        
+
     Edge Cases:
         - If chronic load is 0 -> returns status 'insufficient_data' (never divide by zero, never infinity).
         - If days of recorded history < min_history_days (14) -> returns status 'insufficient_data'.
-        
+
     Zones (Descriptive only, not clinical):
         - < 0.8: 'underreaching'
         - 0.8 - 1.3: 'optimal'
@@ -148,13 +154,13 @@ def calculate_acwr_rolling(
             "status": "insufficient_data",
             "zone": "insufficient_data",
             "days_of_history": 0,
-            "disclaimer": ACWR_DISCLAIMER
+            "disclaimer": ACWR_DISCLAIMER,
         }
 
     sorted_dates = sorted(daily_loads.keys())
     earliest_date = sorted_dates[0]
     days_of_history = (target_date - earliest_date).days + 1
-    
+
     # Check minimum history requirement
     if days_of_history < min_history_days:
         return {
@@ -164,21 +170,15 @@ def calculate_acwr_rolling(
             "status": "insufficient_data",
             "zone": "insufficient_data",
             "days_of_history": days_of_history,
-            "disclaimer": ACWR_DISCLAIMER
+            "disclaimer": ACWR_DISCLAIMER,
         }
-        
+
     # Acute window calculation (past acute_days ending at target_date)
-    acute_sum = sum(
-        daily_loads.get(target_date - timedelta(days=i), 0.0)
-        for i in range(acute_days)
-    )
+    acute_sum = sum(daily_loads.get(target_date - timedelta(days=i), 0.0) for i in range(acute_days))
     acute_avg = acute_sum / acute_days
 
     # Chronic window calculation (past chronic_days ending at target_date)
-    chronic_sum = sum(
-        daily_loads.get(target_date - timedelta(days=i), 0.0)
-        for i in range(chronic_days)
-    )
+    chronic_sum = sum(daily_loads.get(target_date - timedelta(days=i), 0.0) for i in range(chronic_days))
     chronic_avg = chronic_sum / chronic_days
 
     # Guard against zero division
@@ -190,7 +190,7 @@ def calculate_acwr_rolling(
             "status": "insufficient_data",
             "zone": "insufficient_data",
             "days_of_history": days_of_history,
-            "disclaimer": ACWR_DISCLAIMER
+            "disclaimer": ACWR_DISCLAIMER,
         }
 
     acwr_value = round(acute_avg / chronic_avg, 2)
@@ -212,14 +212,12 @@ def calculate_acwr_rolling(
         "status": "calculated",
         "zone": zone,
         "days_of_history": days_of_history,
-        "disclaimer": ACWR_DISCLAIMER
+        "disclaimer": ACWR_DISCLAIMER,
     }
 
+
 def calculate_macro_split(
-    protein_g: Optional[float],
-    carbs_g: Optional[float],
-    fat_g: Optional[float],
-    logged_calories: Optional[float]
+    protein_g: float | None, carbs_g: float | None, fat_g: float | None, logged_calories: float | None
 ) -> Dict[str, Union[float, bool, None, str]]:
     """
     Computes macronutrient caloric breakdown (4 kcal/g protein, 4 kcal/g carbs, 9 kcal/g fat).
@@ -228,12 +226,12 @@ def calculate_macro_split(
     p = protein_g or 0.0
     c = carbs_g or 0.0
     f = fat_g or 0.0
-    
+
     derived_calories = round((p * 4.0) + (c * 4.0) + (f * 9.0), 1)
-    
+
     discrepancy_flag = False
     discrepancy_pct = None
-    
+
     if logged_calories is not None and logged_calories > 0 and derived_calories > 0:
         diff = abs(logged_calories - derived_calories)
         discrepancy_pct = round((diff / logged_calories) * 100, 1)
@@ -248,5 +246,5 @@ def calculate_macro_split(
         "fat_calories": round(f * 9.0, 1),
         "discrepancy_flag": discrepancy_flag,
         "discrepancy_percentage": discrepancy_pct,
-        "note": "Caloric breakdown uses standard Atwater factors (4/4/9 kcal/g)."
+        "note": "Caloric breakdown uses standard Atwater factors (4/4/9 kcal/g).",
     }

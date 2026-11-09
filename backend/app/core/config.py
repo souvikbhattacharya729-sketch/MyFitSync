@@ -1,9 +1,10 @@
-import os
 from typing import List, Union
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_DEV_SECRET = "dev_secret_key_for_testing_purposes_only_32_chars!"
+
 
 class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
@@ -35,12 +36,7 @@ class Settings(BaseSettings):
         default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173"
     )
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=True,
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
@@ -54,6 +50,7 @@ class Settings(BaseSettings):
             return self.DATABASE_URL
         # PyODBC connection string for Microsoft SQL Server with safe escaping
         from urllib.parse import quote_plus
+
         safe_password = quote_plus(self.APP_DB_PASSWORD)
         return (
             f"mssql+pyodbc://{self.APP_DB_USER}:{safe_password}@"
@@ -71,5 +68,6 @@ class Settings(BaseSettings):
                 )
             if self.APP_DB_PASSWORD == "AppP@ssw0rd2026!":
                 raise ValueError("FATAL: Cannot use default database password in production environment.")
+
 
 settings = Settings()

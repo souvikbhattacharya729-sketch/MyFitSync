@@ -1,7 +1,6 @@
 from datetime import date
-from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -26,12 +25,13 @@ from app.services.analytics_service import AnalyticsService
 
 router = APIRouter()
 
+
 @router.get("", response_model=DashboardResponse)
 def get_dashboard_data(
-    from_date: Optional[date] = Query(None, alias="from"),
-    to_date: Optional[date] = Query(None, alias="to"),
+    from_date: date | None = Query(None, alias="from"),
+    to_date: date | None = Query(None, alias="to"),
     user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
@@ -50,9 +50,7 @@ def get_dashboard_data(
     active_days = len(set(w.performed_on for w in workouts_list))
 
     totals = DashboardTotals(
-        total_volume_kg=round(total_volume, 1),
-        workouts_count=workouts_count,
-        active_days=active_days
+        total_volume_kg=round(total_volume, 1), workouts_count=workouts_count, active_days=active_days
     )
 
     # 2. Key lifts latest E1RM
@@ -96,23 +94,19 @@ def get_dashboard_data(
     recent = RecentActivity(
         workouts=[WorkoutOut.model_validate(w) for w in recent_workouts],
         nutrition=[NutritionOut.model_validate(n) for n in recent_nutrition],
-        readiness=[ReadinessOut.model_validate(r) for r in recent_readiness]
+        readiness=[ReadinessOut.model_validate(r) for r in recent_readiness],
     )
 
     # 7. Section empty flags
     has_workouts = workouts_count > 0 or len(recent_workouts) > 0
-    has_nutrition = (
-        db.query(Nutrition.id).filter(Nutrition.user_id == user_id).first() is not None
-    )
-    has_readiness = (
-        db.query(DailyReadiness.id).filter(DailyReadiness.user_id == user_id).first() is not None
-    )
+    has_nutrition = db.query(Nutrition.id).filter(Nutrition.user_id == user_id).first() is not None
+    has_readiness = db.query(DailyReadiness.id).filter(DailyReadiness.user_id == user_id).first() is not None
 
     is_empty = SectionEmptyFlags(
         overall=not (has_workouts or has_nutrition or has_readiness),
         workouts=not has_workouts,
         nutrition=not has_nutrition,
-        readiness=not has_readiness
+        readiness=not has_readiness,
     )
 
     return DashboardResponse(
@@ -122,5 +116,5 @@ def get_dashboard_data(
         last_readiness=last_readiness,
         acwr=acwr,
         recent_activity=recent,
-        is_empty=is_empty
+        is_empty=is_empty,
     )

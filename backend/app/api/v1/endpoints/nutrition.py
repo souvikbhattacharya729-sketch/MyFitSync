@@ -1,9 +1,8 @@
 import math
 from datetime import date
-from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
-from zoneinfo import ZoneInfo
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -21,11 +20,10 @@ from app.services.analytics_service import AnalyticsService
 
 router = APIRouter()
 
+
 @router.post("", response_model=NutritionOut, status_code=status.HTTP_201_CREATED)
 def create_nutrition(
-    nutr_in: NutritionCreate,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    nutr_in: NutritionCreate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
 ):
     entry = Nutrition(
         user_id=user_id,
@@ -34,20 +32,21 @@ def create_nutrition(
         protein_g=nutr_in.protein_g,
         carbs_g=nutr_in.carbs_g,
         fat_g=nutr_in.fat_g,
-        eaten_on=nutr_in.eaten_on
+        eaten_on=nutr_in.eaten_on,
     )
     db.add(entry)
     db.flush()
     return entry
 
+
 @router.get("", response_model=PaginatedNutrition)
 def list_nutrition(
-    from_date: Optional[date] = Query(None, alias="from"),
-    to_date: Optional[date] = Query(None, alias="to"),
+    from_date: date | None = Query(None, alias="from"),
+    to_date: date | None = Query(None, alias="to"),
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.DEFAULT_PAGE_SIZE, ge=1, le=settings.MAX_PAGE_SIZE),
     user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     query = db.query(Nutrition).filter(Nutrition.user_id == user_id)
     if from_date:
@@ -65,14 +64,15 @@ def list_nutrition(
         total=total,
         page=page,
         page_size=page_size,
-        total_pages=total_pages
+        total_pages=total_pages,
     )
+
 
 @router.get("/daily-totals", response_model=DailyNutritionTotals)
 def get_daily_totals(
-    target_date: Optional[date] = Query(None, alias="date"),
+    target_date: date | None = Query(None, alias="date"),
     user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
@@ -81,23 +81,18 @@ def get_daily_totals(
     res = AnalyticsService.get_today_nutrition(db, user, target_date=target_date)
     return DailyNutritionTotals(**res)
 
+
 @router.get("/{id}", response_model=NutritionOut)
-def get_nutrition(
-    id: int,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
+def get_nutrition(id: int, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     entry = db.query(Nutrition).filter(Nutrition.id == id, Nutrition.user_id == user_id).first()
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Nutrition entry {id} not found.")
     return entry
 
+
 @router.put("/{id}", response_model=NutritionOut)
 def update_nutrition(
-    id: int,
-    nutr_update: NutritionUpdate,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    id: int, nutr_update: NutritionUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
 ):
     entry = db.query(Nutrition).filter(Nutrition.id == id, Nutrition.user_id == user_id).first()
     if not entry:
@@ -119,12 +114,9 @@ def update_nutrition(
     db.flush()
     return entry
 
+
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_nutrition(
-    id: int,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
+def delete_nutrition(id: int, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     entry = db.query(Nutrition).filter(Nutrition.id == id, Nutrition.user_id == user_id).first()
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Nutrition entry {id} not found.")

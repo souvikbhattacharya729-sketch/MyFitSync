@@ -1,6 +1,6 @@
 import math
 from datetime import date
-from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
@@ -13,11 +13,10 @@ from app.schemas.workout import PaginatedWorkouts, WorkoutCreate, WorkoutOut, Wo
 
 router = APIRouter()
 
+
 @router.post("", response_model=WorkoutOut, status_code=status.HTTP_201_CREATED)
 def create_workout(
-    workout_in: WorkoutCreate,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    workout_in: WorkoutCreate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
 ):
     primary_e1rm, _, _ = compute_estimated_1rm(workout_in.weight_kg, workout_in.reps)
     volume = calculate_set_volume(workout_in.weight_kg, workout_in.reps, workout_in.sets)
@@ -32,22 +31,23 @@ def create_workout(
         rpe=workout_in.rpe,
         estimated_1rm=primary_e1rm,
         total_volume=volume,
-        performed_on=workout_in.performed_on
+        performed_on=workout_in.performed_on,
     )
     db.add(workout)
     db.flush()
     return workout
 
+
 @router.get("", response_model=PaginatedWorkouts)
 def list_workouts(
-    exercise: Optional[str] = Query(None),
-    from_date: Optional[date] = Query(None, alias="from"),
-    to_date: Optional[date] = Query(None, alias="to"),
+    exercise: str | None = Query(None),
+    from_date: date | None = Query(None, alias="from"),
+    to_date: date | None = Query(None, alias="to"),
     sort: str = Query("desc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.DEFAULT_PAGE_SIZE, ge=1, le=settings.MAX_PAGE_SIZE),
     user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     query = db.query(Workout).filter(Workout.user_id == user_id)
 
@@ -74,37 +74,26 @@ def list_workouts(
         total=total,
         page=page,
         page_size=page_size,
-        total_pages=total_pages
+        total_pages=total_pages,
     )
 
+
 @router.get("/{id}", response_model=WorkoutOut)
-def get_workout(
-    id: int,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
+def get_workout(id: int, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     # Scoped by user_id; returns 404 if not found or belongs to another user
     workout = db.query(Workout).filter(Workout.id == id, Workout.user_id == user_id).first()
     if not workout:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Workout with id {id} not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workout with id {id} not found.")
     return workout
+
 
 @router.put("/{id}", response_model=WorkoutOut)
 def update_workout(
-    id: int,
-    workout_update: WorkoutUpdate,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    id: int, workout_update: WorkoutUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
 ):
     workout = db.query(Workout).filter(Workout.id == id, Workout.user_id == user_id).first()
     if not workout:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Workout with id {id} not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workout with id {id} not found.")
 
     if workout_update.exercise is not None:
         workout.exercise = workout_update.exercise.strip().lower()
@@ -129,17 +118,11 @@ def update_workout(
     db.flush()
     return workout
 
+
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_workout(
-    id: int,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
+def delete_workout(id: int, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     workout = db.query(Workout).filter(Workout.id == id, Workout.user_id == user_id).first()
     if not workout:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Workout with id {id} not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workout with id {id} not found.")
     db.delete(workout)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

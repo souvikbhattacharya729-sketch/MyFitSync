@@ -1,14 +1,13 @@
-from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
-from sqlalchemy import desc, func, select
-from sqlalchemy.orm import Session
+from datetime import date, datetime
+from typing import Any, Dict, List, Tuple
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
 from app.core.sports_science import (
-    ACWR_DISCLAIMER,
     calculate_acwr_rolling,
     calculate_macro_split,
-    compute_estimated_1rm,
 )
 from app.models.nutrition import Nutrition
 from app.models.readiness import DailyReadiness
@@ -17,11 +16,12 @@ from app.models.workout import Workout
 
 KEY_LIFTS = ["squat", "bench_press", "deadlift", "overhead_press"]
 
+
 class AnalyticsService:
     @staticmethod
-    def get_latest_e1rm_by_exercise(db: Session, user_id: str) -> Dict[str, Optional[float]]:
-        result: Dict[str, Optional[float]] = {lift: None for lift in KEY_LIFTS}
-        
+    def get_latest_e1rm_by_exercise(db: Session, user_id: str) -> Dict[str, float | None]:
+        result: Dict[str, float | None] = {lift: None for lift in KEY_LIFTS}
+
         # Query max estimated_1rm or most recent estimated_1rm for each key lift
         for lift in KEY_LIFTS:
             latest = (
@@ -49,9 +49,7 @@ class AnalyticsService:
         return {r[0]: float(r[1] or 0.0) for r in rows}
 
     @staticmethod
-    def compute_acwr_for_user(
-        db: Session, user_id: str, target_date: Optional[date] = None
-    ) -> Dict[str, Any]:
+    def compute_acwr_for_user(db: Session, user_id: str, target_date: date | None = None) -> Dict[str, Any]:
         if target_date is None:
             user = db.query(User).filter(User.user_id == user_id).first()
             tz_str = user.timezone if user else "UTC"
@@ -65,9 +63,7 @@ class AnalyticsService:
         return calculate_acwr_rolling(daily_loads, target_date=target_date)
 
     @staticmethod
-    def get_today_nutrition(
-        db: Session, user: User, target_date: Optional[date] = None
-    ) -> Dict[str, Any]:
+    def get_today_nutrition(db: Session, user: User, target_date: date | None = None) -> Dict[str, Any]:
         if target_date is None:
             try:
                 tz = ZoneInfo(user.timezone)
@@ -75,11 +71,7 @@ class AnalyticsService:
                 tz = ZoneInfo("UTC")
             target_date = datetime.now(tz).date()
 
-        entries = (
-            db.query(Nutrition)
-            .filter(Nutrition.user_id == user.user_id, Nutrition.eaten_on == target_date)
-            .all()
-        )
+        entries = db.query(Nutrition).filter(Nutrition.user_id == user.user_id, Nutrition.eaten_on == target_date).all()
 
         cal_sum = sum(e.calories or 0.0 for e in entries)
         pro_sum = sum(e.protein_g or 0.0 for e in entries)
@@ -131,15 +123,8 @@ class AnalyticsService:
         }
 
     @staticmethod
-    def get_volume_analytics(
-        db: Session, user_id: str, group_by: str = "daily"
-    ) -> List[Dict[str, Any]]:
-        workouts = (
-            db.query(Workout)
-            .filter(Workout.user_id == user_id)
-            .order_by(Workout.performed_on.asc())
-            .all()
-        )
+    def get_volume_analytics(db: Session, user_id: str, group_by: str = "daily") -> List[Dict[str, Any]]:
+        workouts = db.query(Workout).filter(Workout.user_id == user_id).order_by(Workout.performed_on.asc()).all()
         if group_by == "weekly":
             # Group by ISO week (year, week)
             weekly_map: Dict[Tuple[int, int], float] = {}
@@ -160,18 +145,11 @@ class AnalyticsService:
             daily_map: Dict[date, float] = {}
             for w in workouts:
                 daily_map[w.performed_on] = daily_map.get(w.performed_on, 0.0) + w.total_volume
-            return [
-                {"date": str(k), "volume_kg": round(v, 1)}
-                for k, v in sorted(daily_map.items())
-            ]
+            return [{"date": str(k), "volume_kg": round(v, 1)} for k, v in sorted(daily_map.items())]
 
     @staticmethod
-    def get_strength_trends(
-        db: Session, user_id: str, exercise: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        query = db.query(Workout).filter(
-            Workout.user_id == user_id, Workout.estimated_1rm.isnot(None)
-        )
+    def get_strength_trends(db: Session, user_id: str, exercise: str | None = None) -> List[Dict[str, Any]]:
+        query = db.query(Workout).filter(Workout.user_id == user_id, Workout.estimated_1rm.isnot(None))
         if exercise:
             query = query.filter(Workout.exercise == exercise)
         workouts = query.order_by(Workout.performed_on.asc(), Workout.id.asc()).all()
