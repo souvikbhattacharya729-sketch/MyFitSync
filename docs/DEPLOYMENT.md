@@ -8,10 +8,10 @@ This guide details the procedure for deploying **MyFitSync ("Your Personal Fitne
 
 | Component | Minimum Specification | Recommended Production |
 |---|---|---|
-| **CPU** | 2 vCPUs (x86_64 or arm64 with Rosetta/AVX) | 4 vCPUs |
-| **RAM** | 4 GB | 8 GB (MS SQL Server requires 2 GB min) |
-| **Disk Storage** | 20 GB SSD | 50 GB NVMe SSD |
-| **Operating System** | Ubuntu 22.04 LTS / Debian 12 / RHEL 9 | Ubuntu 22.04 LTS |
+| **CPU** | 1 vCPU (x86_64 or arm64 native) | 2–4 vCPUs |
+| **RAM** | 512 MB (PostgreSQL is lightweight) | 2–4 GB |
+| **Disk Storage** | 10 GB SSD | 30 GB NVMe SSD |
+| **Operating System** | Ubuntu 22.04 LTS / Debian 12 / Alpine Linux | Ubuntu 22.04 LTS |
 | **Container Engine** | Docker Engine 24.0+ & Compose v2.20+ | Latest Stable Docker CE |
 
 ---
@@ -25,19 +25,24 @@ chmod 600 .env
 ```
 
 ### Mandatory Production Secrets
-Edit `.env` and configure strong, unique secrets:
+Configure strong, unique secrets in your `.env` or cloud secret manager:
 ```env
-# Microsoft SQL Server Passwords (Min 8 chars, uppercase, lowercase, number, symbol)
-MSSQL_SA_PASSWORD=SuperStr0ng_Pr0d_SA_Passw0rd_2026!
-APP_DB_PASSWORD=Secure_App_Db_User_Passw0rd_2026!
-
-# Application JWT Secret (Strictly enforced: >= 32 characters, non-default)
-SECRET_KEY=prod_jwt_signing_secret_key_minimum_32_characters_mandatory!
+# Application Environment
 ENVIRONMENT=production
+
+# Supabase / PostgreSQL Connection
+# For direct connection:
+DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?sslmode=require
+# Or for transaction pooler (recommended on Render):
+# DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require
+DB_SSLMODE=require
+
+# Application Cryptographic HMAC Key (Strictly enforced: >= 32 characters)
+SECRET_KEY=prod_jwt_signing_secret_key_minimum_32_characters_mandatory!
 
 # Token Expiry & CORS
 ACCESS_TOKEN_EXPIRE_MINUTES=60
-ALLOWED_ORIGINS=https://myfitsync.example.com
+ALLOWED_ORIGINS=https://myfitsync.vercel.app,https://your-custom-domain.com
 ```
 
 > [!CAUTION]
@@ -45,56 +50,51 @@ ALLOWED_ORIGINS=https://myfitsync.example.com
 
 ---
 
-## 3. Network Architecture & Port Exposure
+## 3. Production Deployment Options
 
-Per Section 10 & 12 of the Master Specification:
-- **Port 1433 (SQL Server):** **NEVER published to the host or internet** in `docker-compose.prod.yml`. It is accessible exclusively through the internal Docker bridge network (`docker_default`) to the backend container.
-- **Port 8000 (Backend API):** Internal only; exposed exclusively to the frontend Nginx reverse proxy.
-- **Port 80 / 443 (Web Gateway):** Published for athlete web traffic. Nginx handles SSL/TLS termination and reverse proxies `/api/` requests to `http://backend:8000/api/`.
+### Option A: Cloud Native (Supabase + Render + Vercel) — Recommended
+Follow the dedicated step-by-step setup in [`docs/SUPABASE_RENDER_VERCEL.md`](file:///Users/souvikbhattacharya/Desktop/MyFitSync/docs/SUPABASE_RENDER_VERCEL.md):
+- **Database:** Supabase PostgreSQL 16 (SSL enabled, automated cloud backups)
+- **Backend:** Render Web Service (FastAPI / Uvicorn with `render.yaml`)
+- **Frontend:** Vercel SPA (React 18 / Vite with `frontend/vercel.json`)
 
----
-
-## 4. Production Deployment Execution
-
-### Step 1: Build Production Images
-```bash
-docker compose -f docker/docker-compose.prod.yml build
-```
-
-### Step 2: Launch Stack
-```bash
-docker compose -f docker/docker-compose.prod.yml up -d
-```
-
-### Step 3: Execute Database Migrations
-Run Alembic migrations to apply all schema tables, check constraints, and nonclustered indexes to `MyFitSyncDB`:
-```bash
-docker compose -f docker/docker-compose.prod.yml exec backend alembic upgrade head
-```
-
-### Step 4: Verify Deployment Health
-Verify that the database and API are healthy:
-```bash
-curl -f http://localhost/api/v1/health/ready
-```
-Expected output:
-```json
-{"status":"ready","database":"connected"}
-```
+### Option B: Self-Hosted Docker Compose Production Stack
+If deploying to a single virtual server (e.g. AWS EC2, DigitalOcean Droplet, Hetzner):
+1. Build production images:
+   ```bash
+   docker compose -f docker/docker-compose.prod.yml build
+   ```
+2. Launch the stack:
+   ```bash
+   docker compose -f docker/docker-compose.prod.yml up -d
+   ```
+3. Run Alembic migrations:
+   ```bash
+   docker compose -f docker/docker-compose.prod.yml exec backend alembic upgrade head
+   ```
+4. Verify deployment health:
+   ```bash
+   curl -f http://localhost/api/v1/health/ready
+   ```
+   Expected response:
+   ```json
+   {"status":"ready","database":"connected"}
+   ```
 
 ---
 
-## 5. Automated Backups & Disaster Recovery
+## 4. Automated Backups & Disaster Recovery
 
-### Creating a Snapshot Backup
-Execute the automated backup utility (stored in `backups/`):
+### Creating a Snapshot Backup (`pg_dump`)
+Execute the automated backup utility:
 ```bash
 ./scripts/backup_db.sh
 ```
+This produces a compressed PostgreSQL custom-format dump in `backups/myfitsync_backup_YYYYMMDD_HHMMSS.dump`.
 
-### Restoring from Backup
-To recover from an outage or data corruption event:
+### Restoring from Backup (`pg_restore`)
+To recover from an incident or perform a point-in-time recovery:
 ```bash
-./scripts/restore_db.sh backups/MyFitSyncDB_backup_YYYYMMDD_HHMMSS.bak
+./scripts/restore_db.sh backups/myfitsync_backup_YYYYMMDD_HHMMSS.dump
 ```
-See [`docs/DISASTER_RECOVERY.md`](file:///Users/souvikbhattacharya/Desktop/MyFitSync/docs/DISASTER_RECOVERY.md) for recovery time objective (RTO) and point objective (RPO) SLAs.
+See [`docs/DISASTER_RECOVERY.md`](file:///Users/souvikbhattacharya/Desktop/MyFitSync/docs/DISASTER_RECOVERY.md) for full RTO/RPO SLA protocols.

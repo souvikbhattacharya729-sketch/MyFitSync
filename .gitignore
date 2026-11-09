@@ -42,8 +42,9 @@ backend/.env
 frontend/.env
 *.local
 
-# SQL Server & Data
+# Database & Data
 *.bak
+*.dump
 *.mdf
 *.ldf
 *.db

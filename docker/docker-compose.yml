@@ -1,54 +1,45 @@
 services:
-  sql1:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sql1
-    platform: linux/amd64
+  db:
+    image: postgres:16-alpine
+    container_name: myfitsync_postgres
     restart: unless-stopped
     environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:-Str0ngPassw0rd2026!}
-      - APP_DB_PASSWORD=${APP_DB_PASSWORD:-AppP@ssw0rd2026!}
-      - MSSQL_PID=Developer
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-myfitsync}
     ports:
-      - "1433:1433"
+      - "5432:5432"
     volumes:
-      - sqlserver_data:/var/opt/mssql
-      - ./sqlserver/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-      - ./sqlserver/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
-    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
-    deploy:
-      resources:
-        limits:
-          memory: 3G
-        reservations:
-          memory: 2G
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD:-Str0ngPassw0rd2026!}\" -C -Q 'SELECT 1' || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD:-Str0ngPassw0rd2026!}\" -Q 'SELECT 1'"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-myfitsync}"]
+      interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 20s
 
   backend:
     build:
       context: ../backend
       dockerfile: Dockerfile
+      target: development
     container_name: myfitsync_backend
     restart: unless-stopped
     environment:
       - ENVIRONMENT=development
-      - DB_HOST=sql1
-      - DB_PORT=1433
-      - DB_NAME=MyFitSyncDB
-      - APP_DB_USER=myfitsync_app
-      - APP_DB_PASSWORD=${APP_DB_PASSWORD:-AppP@ssw0rd2026!}
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-myfitsync}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-myfitsync}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_SSLMODE=disable
       - SECRET_KEY=${SECRET_KEY:-dev_secret_key_for_testing_purposes_only_32_chars!}
       - ACCESS_TOKEN_EXPIRE_MINUTES=60
       - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173
     ports:
       - "8000:8000"
     depends_on:
-      sql1:
+      db:
         condition: service_healthy
     volumes:
       - ../backend:/app
@@ -70,4 +61,4 @@ services:
       - /app/node_modules
 
 volumes:
-  sqlserver_data:
+  postgres_data:

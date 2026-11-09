@@ -42,3 +42,17 @@
 - **Decision:** Token is kept in React Context (`FitnessContext`) in-memory for active sessions, and synced with `localStorage` (or `sessionStorage` based on user "remember me" choice, defaulting to `localStorage`) to allow seamless navigation across browser tabs and page reloads. The single API client (`services/api.js`) automatically intercepts 401 responses, clears storage, and triggers logout.
 - **Alternatives Considered:** httpOnly cookies.
 - **Reason:** In a decoupled frontend/backend setup deployed via separate containers or CDN/API domains, local token management avoids cross-domain cookie and CSRF complexities while maintaining rapid responsiveness and clear token expiry handling.
+
+---
+
+## ADR-006: Migration from Microsoft SQL Server to PostgreSQL and Supabase Integration
+- **Status:** Accepted
+- **Context:** Transition from on-premise / containerized Microsoft SQL Server to cloud-native PostgreSQL hosted on Supabase, with deployment targeting Render (backend API) and Vercel (frontend SPA).
+- **Decision:**
+  1. Replace `pyodbc` and `msodbcsql18` with `psycopg2-binary` (PostgreSQL driver).
+  2. Configure SQLAlchemy with the `postgresql+psycopg2://` dialect and connection string auto-normalization (supporting standard `postgres://` or `postgresql://` formats from Supabase and cloud providers).
+  3. Support SSL connections with `sslmode=require` for secure communication with Supabase.
+  4. Use standard ANSI SQL and PostgreSQL types (`VARCHAR`, `FLOAT`, `INTEGER`, `DATE`, `TIMESTAMP`) preserving check constraints, indexes, and `ON DELETE CASCADE`.
+  5. Replace SQL Server Docker container with `postgres:16-alpine` for local development, keeping production on Supabase PostgreSQL.
+- **Alternatives Considered:** `asyncpg` with async SQLAlchemy; direct Supabase JS SDK on frontend.
+- **Reason:** Keeps the proven synchronous FastAPI + worker threadpool architecture stable, maintains Python business logic and sports science calculations intact, eliminates heavyweight proprietary Microsoft ODBC dependencies, and enables clean, frictionless deployments on Render, Vercel, and Supabase.

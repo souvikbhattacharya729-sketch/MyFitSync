@@ -109,7 +109,7 @@ export const Landing = () => {
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Enterprise Persistence</h3>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Powered by Microsoft SQL Server 2022 with check constraints, UTC DATETIME2 timestamps, least-privilege DB users, and verified strict per-user data isolation.
+              Powered by PostgreSQL & Supabase with check constraints, UTC timestamps, SSL-encrypted pooling, and verified strict per-user data isolation.
             </p>
           </div>
         </div>

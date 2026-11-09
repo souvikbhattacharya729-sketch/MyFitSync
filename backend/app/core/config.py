@@ -11,14 +11,23 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "MyFitSync"
     API_V1_STR: str = "/api/v1"
 
-    # Database
-    DB_HOST: str = Field(default="localhost")
-    DB_PORT: int = Field(default=1433)
-    DB_NAME: str = Field(default="MyFitSyncDB")
-    APP_DB_USER: str = Field(default="myfitsync_app")
-    APP_DB_PASSWORD: str = Field(default="AppP@ssw0rd2026!")
-    MSSQL_SA_PASSWORD: str = Field(default="Str0ngPassw0rd2026!")
+    # Database (PostgreSQL / Supabase)
     DATABASE_URL: Union[str, None] = None
+    DB_HOST: str = Field(default="localhost")
+    DB_PORT: int = Field(default=5432)
+    DB_NAME: str = Field(default="myfitsync")
+    DB_USER: str = Field(default="postgres")
+    DB_PASSWORD: str = Field(default="postgres")
+    DB_SSLMODE: str = Field(default="prefer")  # 'require' for Supabase, 'disable' / 'prefer' for local
+    # Backward compatibility aliases
+    APP_DB_USER: Union[str, None] = None
+    APP_DB_PASSWORD: Union[str, None] = None
+
+    # Connection pooling parameters (optimized for Supabase & local dev)
+    DB_POOL_SIZE: int = Field(default=10)
+    DB_MAX_OVERFLOW: int = Field(default=20)
+    DB_POOL_RECYCLE_SECONDS: int = Field(default=300)
+    DB_POOL_TIMEOUT_SECONDS: int = Field(default=30)
 
     # Security
     SECRET_KEY: str = Field(default=DEFAULT_DEV_SECRET)
@@ -46,17 +55,33 @@ class Settings(BaseSettings):
         return v
 
     def get_database_url(self) -> str:
+        """
+        Return a normalized PostgreSQL SQLAlchemy connection string.
+        Automatically converts 'postgres://' or 'postgresql://' prefixes to 'postgresql+psycopg2://'
+        for Supabase, Render, and standard cloud provider compatibility.
+        """
         if self.DATABASE_URL:
-            return self.DATABASE_URL
-        # PyODBC connection string for Microsoft SQL Server with safe escaping
+            url = self.DATABASE_URL.strip()
+            if url.startswith("postgres://"):
+                url = "postgresql+psycopg2://" + url[len("postgres://") :]
+            elif url.startswith("postgresql://") and not url.startswith("postgresql+"):
+                url = "postgresql+psycopg2://" + url[len("postgresql://") :]
+
+            if self.DB_SSLMODE == "require" and "sslmode" not in url:
+                separator = "&" if "?" in url else "?"
+                url = f"{url}{separator}sslmode=require"
+            return url
+
         from urllib.parse import quote_plus
 
-        safe_password = quote_plus(self.APP_DB_PASSWORD)
-        return (
-            f"mssql+pyodbc://{self.APP_DB_USER}:{safe_password}@"
-            f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-            "?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes&Connection+Timeout=30"
-        )
+        user = self.DB_USER or self.APP_DB_USER or "postgres"
+        password = self.DB_PASSWORD or self.APP_DB_PASSWORD or "postgres"
+        safe_password = quote_plus(password)
+
+        base_url = f"postgresql+psycopg2://{user}:{safe_password}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        if self.DB_SSLMODE and self.DB_SSLMODE != "disable":
+            base_url = f"{base_url}?sslmode={self.DB_SSLMODE}"
+        return base_url
 
     def validate_production_security(self):
         """Refuse to start in production with default secrets."""
@@ -66,7 +91,8 @@ class Settings(BaseSettings):
                     "FATAL SECURITY VIOLATION: Refusing to start in production with default, "
                     "empty, or insufficiently long SECRET_KEY (minimum 32 characters required)."
                 )
-            if self.APP_DB_PASSWORD == "AppP@ssw0rd2026!":
+            effective_pwd = self.DB_PASSWORD or self.APP_DB_PASSWORD
+            if not self.DATABASE_URL and effective_pwd in ("postgres", "AppP@ssw0rd2026!"):
                 raise ValueError("FATAL: Cannot use default database password in production environment.")
 
 

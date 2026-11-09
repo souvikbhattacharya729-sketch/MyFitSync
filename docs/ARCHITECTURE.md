@@ -6,21 +6,21 @@ This document describes the architectural foundation, component relationships, d
 
 ## 1. High-Level Architecture Overview
 
-MyFitSync is an enterprise-grade fitness intelligence system built on a multi-tier, containerized architecture. It pairs a **deterministic, rule-based NLP pipeline** with **verified SQL Server persistence** and **peer-reviewed sports science formulations**.
+MyFitSync is an enterprise-grade fitness intelligence system built on a multi-tier, containerized architecture. It pairs a **deterministic, rule-based NLP pipeline** with **verified PostgreSQL 16 / Supabase persistence** and **peer-reviewed sports science formulations**.
 
 ```mermaid
 flowchart TD
-    subgraph Client["Client Tier (React 18 + Vite)"]
+    subgraph Client["Client Tier (React 18 + Vite / Vercel)"]
         UI["Tailwind UI Components"]
         STATE["FitnessContext (React Context)"]
         CLIENT["ApiClient (Fetch API + Token Interceptor)"]
     end
 
     subgraph Gateway["Ingress / Reverse Proxy"]
-        NGINX["Nginx Production Proxy (:80 / :443)"]
+        NGINX["Nginx / Vercel Edge / Render Ingress"]
     end
 
-    subgraph Backend["Application Tier (FastAPI + Python 3.11)"]
+    subgraph Backend["Application Tier (FastAPI + Python 3.11 / Render)"]
         ROUTER["API Version 1 Router (/api/v1)"]
         AUTH["Auth & Rate Limiter (SlowAPI + Bcrypt)"]
         NLP["Deterministic NLP Engine (Regex Normalizer)"]
@@ -28,8 +28,8 @@ flowchart TD
         ORM["SQLAlchemy 2.0 (Sync Engine + Pooling)"]
     end
 
-    subgraph DataTier["Persistence Tier (Microsoft SQL Server 2022)"]
-        SQL["SQL Server Engine (MyFitSyncDB)"]
+    subgraph DataTier["Persistence Tier (PostgreSQL 16 / Supabase)"]
+        SQL["PostgreSQL Engine / Supavisor Pooler"]
         TABLES[("Users, Workouts, Nutrition, DailyReadiness")]
     end
 
@@ -42,7 +42,7 @@ flowchart TD
     ROUTER --> NLP
     NLP --> SCIENCE
     SCIENCE --> ORM
-    ORM -->|ODBC Driver 18| SQL
+    ORM -->|psycopg2-binary (SSL)| SQL
     SQL --> TABLES
 ```
 
@@ -60,7 +60,7 @@ sequenceDiagram
     participant API as FastAPI /api/v1/chat
     participant NLP as DeterministicNLPParser
     participant Science as Sports Science Engine
-    participant DB as SQL Server 2022
+    participant DB as PostgreSQL / Supabase
 
     Athlete->>ChatUI: Submits plain English log
     ChatUI->>API: POST /chat (with X-Idempotency-Key & JWT)
@@ -135,7 +135,7 @@ flowchart LR
 
 ## 4. Database Schema & Entity-Relationship Diagram
 
-MyFitSync enforces strict referential integrity, check constraints, nonclustered indexes, and `ON DELETE CASCADE` inside Microsoft SQL Server 2022:
+MyFitSync enforces strict referential integrity, check constraints, indexes, and `ON DELETE CASCADE` inside PostgreSQL 16 / Supabase:
 
 ```mermaid
 erDiagram
@@ -144,25 +144,25 @@ erDiagram
     USERS ||--o{ DAILY_READINESS : "logs"
 
     USERS {
-        nvarchar(36) user_id PK "UUID String (Enforces enumeration resistance)"
-        nvarchar(255) email UK "Indexed unique athlete email"
-        nvarchar(255) hashed_password "Bcrypt hashed password"
-        nvarchar(100) name "Athlete full name"
+        varchar(36) user_id PK "UUID String (Enforces enumeration resistance)"
+        varchar(255) email UK "Indexed unique athlete email"
+        varchar(255) hashed_password "Bcrypt hashed password"
+        varchar(100) name "Athlete full name"
         float bodyweight_kg "Default 75.0, strictly positive"
         int target_calories "Default 2500, strictly positive"
         float target_protein_g "Optional macro target"
         float target_carbs_g "Optional macro target"
         float target_fat_g "Optional macro target"
-        nvarchar(50) timezone "Default UTC"
-        datetime2 created_at "UTC timestamp"
-        datetime2 updated_at "UTC timestamp"
+        varchar(50) timezone "Default UTC"
+        timestamp created_at "UTC timestamp"
+        timestamp updated_at "UTC timestamp"
     }
 
     WORKOUTS {
-        int id PK "Identity Autoincrement"
-        nvarchar(36) user_id FK "References USERS.user_id (ON DELETE CASCADE)"
-        nvarchar(100) exercise "Normalized exercise key (e.g. bench_press)"
-        nvarchar(255) exercise_raw "Original phrase typed by athlete"
+        serial id PK "Identity Autoincrement"
+        varchar(36) user_id FK "References USERS.user_id (ON DELETE CASCADE)"
+        varchar(100) exercise "Normalized exercise key (e.g. bench_press)"
+        varchar(255) exercise_raw "Original phrase typed by athlete"
         float weight_kg "Lift weight (>= 0)"
         int reps "Repetitions (> 0)"
         int sets "Sets (> 0)"
@@ -170,29 +170,29 @@ erDiagram
         float estimated_1rm "Brzycki/Wathan 1RM (Null if reps > 12)"
         float total_volume "weight_kg * reps * sets"
         date performed_on "Training calendar date"
-        datetime2 created_at "UTC timestamp"
+        timestamp created_at "UTC timestamp"
     }
 
     NUTRITION {
-        int id PK "Identity Autoincrement"
-        nvarchar(36) user_id FK "References USERS.user_id (ON DELETE CASCADE)"
-        nvarchar(255) meal_title "Meal description or title"
+        serial id PK "Identity Autoincrement"
+        varchar(36) user_id FK "References USERS.user_id (ON DELETE CASCADE)"
+        varchar(255) meal_title "Meal description or title"
         float calories "Total calories (>= 0)"
         float protein_g "Protein in grams (>= 0)"
         float carbs_g "Carbohydrates in grams (>= 0)"
         float fat_g "Fat in grams (>= 0)"
         date eaten_on "Consumption date"
-        datetime2 created_at "UTC timestamp"
+        timestamp created_at "UTC timestamp"
     }
 
     DAILY_READINESS {
-        int id PK "Identity Autoincrement"
-        nvarchar(36) user_id FK "References USERS.user_id (ON DELETE CASCADE)"
+        serial id PK "Identity Autoincrement"
+        varchar(36) user_id FK "References USERS.user_id (ON DELETE CASCADE)"
         float sleep_hours "Sleep duration (0.0 - 24.0)"
         float soreness_score "Soreness rating (1.0 - 10.0)"
         int resting_hr "Resting heart rate (1 - 249 bpm)"
         date logged_date "Daily log date (Unique per user+date)"
-        datetime2 created_at "UTC timestamp"
+        timestamp created_at "UTC timestamp"
     }
 ```
 
@@ -204,5 +204,5 @@ MyFitSync implements defense-in-depth isolation across all operational layers:
 1. **Enumeration Resistance:** All User IDs are random RFC 4122 v4 UUIDs (`String(36)`), eliminating sequential ID guessing attacks.
 2. **Strict 404 on Foreign Resources:** Any attempt by an authenticated user to query, mutate, or delete a resource belonging to another user returns a strict **HTTP 404 Not Found** (never 403 Forbidden), preventing attackers from inferring the existence of other users' records.
 3. **Database Check Constraints:** Data bounds (e.g. `reps > 0`, `weight_kg >= 0`, `sleep_hours BETWEEN 0 AND 24`) are enforced at both the Pydantic schema level and the database table level.
-4. **Least Privilege Database Login:** The application connects exclusively as `myfitsync_app`, granted only `db_datareader` and `db_datawriter` on `MyFitSyncDB`—with zero permissions on `master` or server-level administrative privileges.
+4. **Least Privilege & Row Level Security Compatibility:** The backend communicates via parameterized SQL queries with Supabase / PostgreSQL. If RLS is activated, the service-role or dedicated application user enforces security at the data layer.
 5. **Rate Limiting & Lockout:** SlowAPI protects endpoints from brute force, and an automatic failed-login tracker locks accounts for 15 minutes after 5 consecutive failures.

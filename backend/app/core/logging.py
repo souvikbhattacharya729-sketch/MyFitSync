@@ -8,7 +8,7 @@ SENSITIVE_PATTERNS = [
     re.compile(r"(token['\"]?\s*[:=]\s*['\"])[^'\"]+(['\"])", re.IGNORECASE),
     re.compile(r"(secret['\"]?\s*[:=]\s*['\"])[^'\"]+(['\"])", re.IGNORECASE),
     re.compile(r"(authorization['\"]?\s*[:=]\s*['\"])[^'\"]+(['\"])", re.IGNORECASE),
-    re.compile(r"(mssql\+pyodbc://[^:]+:)[^@]+(@)", re.IGNORECASE),
+    re.compile(r"((?:postgresql(?:\+psycopg2?)?|postgres|mssql\+pyodbc)://[^:]+:)[^@]+(@)", re.IGNORECASE),
 ]
 
 

@@ -1,35 +1,4 @@
 services:
-  sql1:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sql1_prod
-    platform: linux/amd64
-    restart: unless-stopped
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
-      - APP_DB_PASSWORD=${APP_DB_PASSWORD}
-      - MSSQL_PID=Standard
-    # Port 1433 NOT published in production per specification rule §10 & §12
-    expose:
-      - "1433"
-    volumes:
-      - sqlserver_prod_data:/var/opt/mssql
-      - ./sqlserver/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-      - ./sqlserver/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
-    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-        reservations:
-          memory: 2G
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q 'SELECT 1' || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q 'SELECT 1'"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-
   backend:
     build:
       context: ../backend
@@ -39,19 +8,13 @@ services:
     restart: unless-stopped
     environment:
       - ENVIRONMENT=production
-      - DB_HOST=sql1
-      - DB_PORT=1433
-      - DB_NAME=MyFitSyncDB
-      - APP_DB_USER=myfitsync_app
-      - APP_DB_PASSWORD=${APP_DB_PASSWORD}
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_SSLMODE=${DB_SSLMODE:-require}
       - SECRET_KEY=${SECRET_KEY}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://myfitsync.example.com}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://myfitsync.vercel.app,https://myfitsync.example.com}
     expose:
       - "8000"
-    depends_on:
-      sql1:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
       interval: 15s
@@ -71,6 +34,3 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-
-volumes:
-  sqlserver_prod_data:

@@ -1,34 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Database Backup Script for MyFitSyncDB
-# Supports running directly inside the container or from host via docker exec
+# PostgreSQL & Supabase Database Backup Script for MyFitSync
+# Supports local PostgreSQL, Docker container, and remote Supabase instances.
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_DIR="${BACKUP_DIR:-/var/opt/mssql/backup}"
-BACKUP_FILENAME="MyFitSyncDB_${TIMESTAMP}.bak"
+BACKUP_DIR="${BACKUP_DIR:-backups}"
+BACKUP_FILENAME="myfitsync_backup_${TIMESTAMP}.dump"
 BACKUP_PATH="${BACKUP_DIR}/${BACKUP_FILENAME}"
 
-SQL_SERVER="${SQL_SERVER:-localhost}"
-SQL_USER="${SQL_USER:-sa}"
-SQL_PASSWORD="${MSSQL_SA_PASSWORD:-Password123!}"
-SQLCMD_BIN="${SQLCMD_BIN:-/opt/mssql-tools18/bin/sqlcmd}"
-
-if [ ! -f "$SQLCMD_BIN" ]; then
-    SQLCMD_BIN="/opt/mssql-tools/bin/sqlcmd"
-fi
+mkdir -p "${BACKUP_DIR}"
 
 echo "=========================================="
-echo "MyFitSync Database Backup"
-echo "Timestamp: ${TIMESTAMP}"
+echo "MyFitSync PostgreSQL Database Backup"
+echo "Timestamp:   ${TIMESTAMP}"
 echo "Target File: ${BACKUP_PATH}"
 echo "=========================================="
 
-# Ensure backup directory exists
-mkdir -p "${BACKUP_DIR}"
+# Check if DATABASE_URL is set (e.g. Supabase connection)
+if [ -n "${DATABASE_URL:-}" ]; then
+    echo "Backing up via DATABASE_URL..."
+    pg_dump -Fc --no-owner --no-privileges -d "${DATABASE_URL}" -f "${BACKUP_PATH}"
+elif docker ps --format '{{.Names}}' | grep -q "^myfitsync_postgres$"; then
+    echo "Backing up from local Docker container 'myfitsync_postgres'..."
+    docker exec myfitsync_postgres pg_dump -U postgres -Fc --no-owner --no-privileges myfitsync > "${BACKUP_PATH}"
+else
+    DB_HOST="${DB_HOST:-localhost}"
+    DB_PORT="${DB_PORT:-5432}"
+    DB_USER="${DB_USER:-postgres}"
+    DB_NAME="${DB_NAME:-myfitsync}"
+    export PGPASSWORD="${DB_PASSWORD:-postgres}"
+    echo "Backing up from ${DB_HOST}:${DB_PORT}/${DB_NAME}..."
+    pg_dump -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -Fc --no-owner --no-privileges -d "${DB_NAME}" -f "${BACKUP_PATH}"
+fi
 
-# Execute T-SQL Backup
-"$SQLCMD_BIN" -S "${SQL_SERVER}" -U "${SQL_USER}" -P "${SQL_PASSWORD}" -C \
-    -Q "BACKUP DATABASE [MyFitSyncDB] TO DISK = N'${BACKUP_PATH}' WITH FORMAT, MEDIANAME = 'MyFitSyncDBBackup', NAME = 'Full Backup of MyFitSyncDB - ${TIMESTAMP}';"
-
-echo "Backup completed successfully: ${BACKUP_PATH}"
+echo "✓ PostgreSQL backup completed successfully: ${BACKUP_PATH}"

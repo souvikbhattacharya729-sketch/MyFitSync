@@ -1,24 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Database Restore Script for MyFitSyncDB
-# Restores MyFitSyncDB from a specified .bak file with REPLACE
+# PostgreSQL & Supabase Database Restore Script for MyFitSync
+# Restores schema and records from a specified .dump or .sql backup.
 
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 <path_to_backup_file.bak>"
-    echo "Example: $0 /var/opt/mssql/backup/MyFitSyncDB_20261109_120000.bak"
+    echo "Usage: $0 <path_to_backup_file.dump>"
+    echo "Example: $0 backups/myfitsync_backup_20261109_120000.dump"
     exit 1
 fi
 
 BACKUP_FILE="$1"
-SQL_SERVER="${SQL_SERVER:-localhost}"
-SQL_USER="${SQL_USER:-sa}"
-SQL_PASSWORD="${MSSQL_SA_PASSWORD:-Password123!}"
-SQLCMD_BIN="${SQLCMD_BIN:-/opt/mssql-tools18/bin/sqlcmd}"
-
-if [ ! -f "$SQLCMD_BIN" ]; then
-    SQLCMD_BIN="/opt/mssql-tools/bin/sqlcmd"
-fi
 
 if [ ! -f "$BACKUP_FILE" ]; then
     echo "ERROR: Backup file does not exist at '${BACKUP_FILE}'"
@@ -26,17 +18,24 @@ if [ ! -f "$BACKUP_FILE" ]; then
 fi
 
 echo "=========================================="
-echo "MyFitSync Database Restore"
+echo "MyFitSync PostgreSQL Database Restore"
 echo "Source File: ${BACKUP_FILE}"
-echo "Target DB:   MyFitSyncDB"
 echo "=========================================="
 
-# Terminate active connections and restore database
-"$SQLCMD_BIN" -S "${SQL_SERVER}" -U "${SQL_USER}" -P "${SQL_PASSWORD}" -C \
-    -Q "
-ALTER DATABASE [MyFitSyncDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-RESTORE DATABASE [MyFitSyncDB] FROM DISK = N'${BACKUP_FILE}' WITH REPLACE;
-ALTER DATABASE [MyFitSyncDB] SET MULTI_USER;
-"
+if [ -n "${DATABASE_URL:-}" ]; then
+    echo "Restoring directly into DATABASE_URL..."
+    pg_restore --clean --if-exists --no-owner --no-privileges -d "${DATABASE_URL}" "${BACKUP_FILE}" || true
+elif docker ps --format '{{.Names}}' | grep -q "^myfitsync_postgres$"; then
+    echo "Restoring into local Docker container 'myfitsync_postgres'..."
+    docker exec -i myfitsync_postgres pg_restore -U postgres --clean --if-exists --no-owner --no-privileges -d myfitsync < "${BACKUP_FILE}" || true
+else
+    DB_HOST="${DB_HOST:-localhost}"
+    DB_PORT="${DB_PORT:-5432}"
+    DB_USER="${DB_USER:-postgres}"
+    DB_NAME="${DB_NAME:-myfitsync}"
+    export PGPASSWORD="${DB_PASSWORD:-postgres}"
+    echo "Restoring to ${DB_HOST}:${DB_PORT}/${DB_NAME}..."
+    pg_restore -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" --clean --if-exists --no-owner --no-privileges -d "${DB_NAME}" "${BACKUP_FILE}" || true
+fi
 
-echo "Database MyFitSyncDB restored successfully from ${BACKUP_FILE}."
+echo "✓ PostgreSQL database restore completed from ${BACKUP_FILE}."

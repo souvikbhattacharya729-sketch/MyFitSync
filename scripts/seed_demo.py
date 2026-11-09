@@ -2,7 +2,7 @@
 """
 MyFitSync Deterministic Demo Data Seeder
 Seeds realistic athletic history (28 days of progressive overload workouts, 
-macro-balanced nutrition, and readiness entries) into MyFitSyncDB.
+macro-balanced nutrition, and readiness entries) into PostgreSQL / Supabase.
 """
 
 import os

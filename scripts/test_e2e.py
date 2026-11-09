@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 MyFitSync End-to-End Stack Integration Verification Suite
-Validates real SQL Server persistence, NLP multi-intent processing,
+Validates real PostgreSQL / Supabase persistence, NLP multi-intent processing,
 idempotency caching, sports science equations, and strict cross-user data isolation.
 """
 
@@ -51,7 +51,7 @@ def run_e2e():
     status, health = api_call("/health/ready")
     if status != 200 or health.get("status") != "ready":
         raise E2EError(f"Healthcheck failed ({status}): {health}")
-    print(" [1/11] System Health & SQL Server Connection: PASS")
+    print(" [1/11] System Health & PostgreSQL / Supabase Connection: PASS")
 
     # Step 2: Register Fresh User A
     run_id = uuid.uuid4().hex[:8]
@@ -112,7 +112,7 @@ def run_e2e():
         raise E2EError(f"Idempotency cache replay failed ({status})")
     print(" [5/11] Idempotency Caching & Deduplication (X-Idempotency-Key): PASS")
 
-    # Step 6: Query SQL Server & Verify Sports Science Computations
+    # Step 6: Query PostgreSQL / Supabase & Verify Sports Science Computations
     status, workout_list = api_call("/workouts", token=token_a)
     if status != 200 or workout_list.get("total") != 2:
         raise E2EError(f"Expected exactly 2 workouts in DB, got: {workout_list}")
