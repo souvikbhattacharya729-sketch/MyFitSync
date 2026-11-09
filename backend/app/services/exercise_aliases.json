@@ -1,0 +1,41 @@
+{
+  "squat": [
+    "squat", "squats", "back squat", "back squats", "barbell squat", "barbell squats", "bb squat"
+  ],
+  "front_squat": [
+    "front squat", "front squats"
+  ],
+  "bench_press": [
+    "bench", "bench press", "flat bench", "flat bench press", "barbell bench", "bb bench", "flat barbell bench"
+  ],
+  "incline_bench_press": [
+    "incline bench", "incline bench press", "incline press"
+  ],
+  "deadlift": [
+    "deadlift", "deadlifts", "conventional deadlift", "bb deadlift", "barbell deadlift", "dl"
+  ],
+  "romanian_deadlift": [
+    "rdl", "romanian deadlift", "romanian deadlifts"
+  ],
+  "overhead_press": [
+    "overhead press", "ohp", "military press", "shoulder press", "standing press"
+  ],
+  "barbell_row": [
+    "row", "rows", "barbell row", "barbell rows", "bent over row", "bent over rows", "pendlay row"
+  ],
+  "pull_up": [
+    "pull up", "pull ups", "pull-up", "pull-ups", "chin up", "chin ups", "chin-up", "chin-ups"
+  ],
+  "dip": [
+    "dip", "dips", "tricep dip", "tricep dips"
+  ],
+  "leg_press": [
+    "leg press"
+  ],
+  "bicep_curl": [
+    "curl", "curls", "bicep curl", "bicep curls", "barbell curl"
+  ],
+  "lateral_raise": [
+    "lateral raise", "lat raise", "side raise", "lateral raises"
+  ]
+}
