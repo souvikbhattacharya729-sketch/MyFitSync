@@ -42,8 +42,9 @@ class Settings(BaseSettings):
 
     # CORS
     ALLOWED_ORIGINS: Union[str, List[str]] = Field(
-        default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173"
+        default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,https://myfitsync.vercel.app,https://my-fit-sync.vercel.app"
     )
+    ALLOWED_ORIGIN_REGEX: Union[str, None] = Field(default=r"^https://.*\.vercel\.app$")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 
