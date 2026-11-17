@@ -4,6 +4,18 @@ from fastapi import status
 
 
 def test_ops_health_checks(client):
+    res_root = client.get("/")
+    assert res_root.status_code == status.HTTP_200_OK
+    assert res_root.json()["status"] == "healthy"
+    assert "service" in res_root.json()
+
+    res_root_head = client.head("/")
+    assert res_root_head.status_code == status.HTTP_200_OK
+
+    res_top_health = client.get("/health")
+    assert res_top_health.status_code == status.HTTP_200_OK
+    assert res_top_health.json()["status"] == "ok"
+
     res_liveness = client.get("/api/v1/health")
     assert res_liveness.status_code == status.HTTP_200_OK
     assert res_liveness.json()["status"] == "ok"
@@ -142,3 +154,80 @@ def test_analytics_endpoints(client, auth_headers_user_a):
     assert client.get("/api/v1/analytics/volume?group_by=daily", headers=auth_headers_user_a).status_code == 200
     assert client.get("/api/v1/analytics/volume?group_by=weekly", headers=auth_headers_user_a).status_code == 200
     assert client.get("/api/v1/analytics/nutrition", headers=auth_headers_user_a).status_code == 200
+
+
+def test_nutrition_estimate_endpoint(client, auth_headers_user_a):
+    # 1. Exact / Substring lookup: Boiled egg (2 pcs)
+    res_egg = client.post(
+        "/api/v1/nutrition/estimate",
+        json={"food_name": "Boiled egg", "quantity": 2.0, "unit": "pcs"},
+        headers=auth_headers_user_a,
+    )
+    assert res_egg.status_code == status.HTTP_200_OK
+    egg_data = res_egg.json()
+    assert egg_data["calories"] == 156.0
+    assert egg_data["protein_g"] == 12.6
+    assert egg_data["unit"] == "pcs"
+    assert egg_data["confidence"] == "verified_database"
+
+    # 2. Metric conversion: Chicken breast (150 grms)
+    res_chicken = client.post(
+        "/api/v1/nutrition/estimate",
+        json={"food_name": "Chicken breast", "quantity": 150.0, "unit": "grms"},
+        headers=auth_headers_user_a,
+    )
+    assert res_chicken.status_code == status.HTTP_200_OK
+    chicken_data = res_chicken.json()
+    assert chicken_data["calories"] > 0
+    assert chicken_data["protein_g"] > 0
+    assert chicken_data["confidence"] == "verified_database"
+
+    # 3. AI Heuristic for unlisted food: Avocado sandwich
+    res_ai = client.post(
+        "/api/v1/nutrition/estimate",
+        json={"food_name": "Avocado sandwich", "quantity": 1.0, "unit": "pcs"},
+        headers=auth_headers_user_a,
+    )
+    assert res_ai.status_code == status.HTTP_200_OK
+    ai_data = res_ai.json()
+    assert ai_data["calories"] > 0
+    assert ai_data["confidence"] == "ai_heuristic"
+
+
+def test_chat_ai_conversational_queries(client, auth_headers_user_a):
+    # 1. Ask food/nutrition question
+    res_nut = client.post(
+        "/api/v1/chat",
+        json={"message": "How many calories and protein in 3 boiled eggs and 100g oats?"},
+        headers=auth_headers_user_a,
+    )
+    assert res_nut.status_code == status.HTTP_200_OK
+    data_nut = res_nut.json()
+    assert "Nutrition Intelligence Breakdown" in data_nut["reply"] or "eggs" in data_nut["reply"].lower()
+
+    # 2. Ask workout program / split question
+    res_split = client.post(
+        "/api/v1/chat",
+        json={"message": "Give me a 4 day upper lower split for hypertrophy"},
+        headers=auth_headers_user_a,
+    )
+    assert res_split.status_code == status.HTTP_200_OK
+    assert "Upper / Lower" in res_split.json()["reply"] or "Hypertrophy" in res_split.json()["reply"]
+
+    # 3. Ask recovery question
+    res_rec = client.post(
+        "/api/v1/chat",
+        json={"message": "My soreness is very high, should I train heavy today?"},
+        headers=auth_headers_user_a,
+    )
+    assert res_rec.status_code == status.HTTP_200_OK
+    assert "Recovery & ACWR Directive" in res_rec.json()["reply"] or "soreness" in res_rec.json()["reply"].lower()
+
+    # 4. General coaching prompt
+    res_gen = client.post(
+        "/api/v1/chat",
+        json={"message": "Hey coach, what can you help me with?"},
+        headers=auth_headers_user_a,
+    )
+    assert res_gen.status_code == status.HTTP_200_OK
+    assert "MyFitSync" in res_gen.json()["reply"] or "Coach" in res_gen.json()["reply"]

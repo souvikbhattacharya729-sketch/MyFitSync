@@ -8,7 +8,7 @@ export const Layout = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0B0F17] text-slate-100 transition-colors duration-200">
+    <div className="flex min-h-screen flex-col bg-[#0B0D10] text-[#F5F7FA] transition-colors duration-200">
       <Navbar onOpenChat={() => setIsChatOpen(true)} />
 
       <div className="flex flex-1">

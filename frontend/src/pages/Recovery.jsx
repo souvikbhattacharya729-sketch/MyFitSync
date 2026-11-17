@@ -114,7 +114,7 @@ export const Recovery = () => {
         </div>
         <button
           onClick={handleOpenAdd}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm transition-all shadow-lg shadow-emerald-500/10 active:scale-95"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C6FF3D] hover:bg-[#b5f526] text-[#0B0D10] font-black text-sm transition-all shadow-lg shadow-[#C6FF3D]/10 active:scale-95"
         >
           <Plus className="h-4 w-4" />
           Log Recovery

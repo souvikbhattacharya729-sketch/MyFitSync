@@ -66,14 +66,14 @@ export const Landing = () => {
         <div className="mt-10 flex flex-col sm:flex-row gap-4">
           <Link
             to="/register"
-            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-8 py-3.5 text-base font-bold text-slate-950 shadow-xl shadow-emerald-500/20 hover:opacity-90 active:scale-95 transition-all"
+            className="flex items-center justify-center gap-2 rounded-xl bg-[#C6FF3D] hover:bg-[#b5f526] px-8 py-3.5 text-base font-black text-[#0B0D10] shadow-xl shadow-[#C6FF3D]/10 active:scale-95 transition-all"
           >
             <span>Start Logging Free</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
             to="/login"
-            className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-[#131B2A] px-8 py-3.5 text-base font-semibold text-white hover:bg-slate-800 transition-colors"
+            className="flex items-center justify-center gap-2 rounded-xl border border-[#20252E] bg-[#161A21] px-8 py-3.5 text-base font-semibold text-[#F5F7FA] hover:bg-[#20252E] transition-colors"
           >
             Sign In to Dashboard
           </Link>

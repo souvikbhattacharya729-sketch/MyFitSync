@@ -67,3 +67,21 @@ class DailyNutritionTotals(BaseModel):
     calories_pct: float
     protein_pct: float | None = None
     macro_split: Dict[str, Any]
+
+
+class NutritionEstimateRequest(BaseModel):
+    food_name: str = Field(min_length=1, max_length=255)
+    quantity: float = Field(default=1.0, gt=0)
+    unit: str = Field(default="pcs", max_length=20)
+
+
+class NutritionEstimateResponse(BaseModel):
+    food_name: str
+    quantity: float
+    unit: str
+    calories: float
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+    confidence: str
+    source: str

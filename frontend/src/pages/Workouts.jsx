@@ -75,11 +75,13 @@ export const Workouts = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-            <Dumbbell className="h-6 w-6 text-cyan-400" />
+          <h1 className="text-2xl font-black tracking-tight text-[#F5F7FA] flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#4DA3FF]/10 text-[#4DA3FF] border border-[#4DA3FF]/20">
+              <Dumbbell className="h-4 w-4" />
+            </div>
             <span>Workout Logs</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#9AA3B2] mt-0.5">
             Full history of your training sets, tonnage, and calculated 1-rep maximums
           </p>
         </div>
@@ -89,7 +91,7 @@ export const Workouts = () => {
             setEditingWorkout(null);
             setIsModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-md shadow-emerald-500/20 hover:opacity-90 active:scale-95 transition-all self-start sm:self-auto"
+          className="flex items-center gap-2 rounded-xl bg-[#C6FF3D] hover:bg-[#b5f526] px-4 py-2.5 text-xs font-black text-[#0B0D10] shadow-lg shadow-[#C6FF3D]/10 active:scale-95 transition-all self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" />
           <span>Manual Entry</span>
@@ -97,8 +99,8 @@ export const Workouts = () => {
       </div>
 
       {/* Filters Bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-[#131B2A] p-4">
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#20252E] bg-[#161A21] p-4 text-[#F5F7FA]">
+        <div className="flex items-center gap-2 text-xs font-semibold text-[#9AA3B2]">
           <Filter className="h-3.5 w-3.5" />
           <span>Filters:</span>
         </div>
@@ -109,15 +111,15 @@ export const Workouts = () => {
             setExerciseFilter(e.target.value);
             setPage(1);
           }}
-          className="rounded-xl border border-slate-800 bg-[#0B0F17] px-3 py-1.5 text-xs text-white focus:border-emerald-500 focus:outline-none"
+          className="rounded-xl border border-[#20252E] bg-[#0B0D10] px-3 py-1.5 text-xs font-semibold text-[#F5F7FA] focus:border-[#C6FF3D] focus:outline-none"
         >
-          <option value="">All Exercises</option>
-          <option value="bench_press">Bench Press</option>
-          <option value="squat">Squat</option>
-          <option value="deadlift">Deadlift</option>
-          <option value="overhead_press">Overhead Press</option>
-          <option value="barbell_row">Barbell Row</option>
-          <option value="pull_up">Pull Up</option>
+          <option value="" className="bg-[#161A21]">All Exercises</option>
+          <option value="bench_press" className="bg-[#161A21]">Bench Press</option>
+          <option value="squat" className="bg-[#161A21]">Squat</option>
+          <option value="deadlift" className="bg-[#161A21]">Deadlift</option>
+          <option value="overhead_press" className="bg-[#161A21]">Overhead Press</option>
+          <option value="barbell_row" className="bg-[#161A21]">Barbell Row</option>
+          <option value="pull_up" className="bg-[#161A21]">Pull Up</option>
         </select>
 
         <div className="flex items-center gap-2">
@@ -129,9 +131,9 @@ export const Workouts = () => {
               setPage(1);
             }}
             placeholder="From"
-            className="rounded-xl border border-slate-800 bg-[#0B0F17] px-2.5 py-1.5 text-xs text-white focus:border-emerald-500 focus:outline-none"
+            className="rounded-xl border border-[#20252E] bg-[#0B0D10] px-2.5 py-1.5 text-xs text-[#F5F7FA] focus:border-[#C6FF3D] focus:outline-none"
           />
-          <span className="text-slate-500 text-xs">to</span>
+          <span className="text-[#9AA3B2] text-xs">to</span>
           <input
             type="date"
             value={toDate}
@@ -140,7 +142,7 @@ export const Workouts = () => {
               setPage(1);
             }}
             placeholder="To"
-            className="rounded-xl border border-slate-800 bg-[#0B0F17] px-2.5 py-1.5 text-xs text-white focus:border-emerald-500 focus:outline-none"
+            className="rounded-xl border border-[#20252E] bg-[#0B0D10] px-2.5 py-1.5 text-xs text-[#F5F7FA] focus:border-[#C6FF3D] focus:outline-none"
           />
         </div>
 
@@ -152,7 +154,7 @@ export const Workouts = () => {
               setToDate('');
               setPage(1);
             }}
-            className="text-xs text-slate-400 hover:text-white underline ml-auto"
+            className="text-xs text-[#9AA3B2] hover:text-[#C6FF3D] underline ml-auto"
           >
             Clear Filters
           </button>

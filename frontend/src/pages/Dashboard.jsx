@@ -201,7 +201,7 @@ export const Dashboard = () => {
           unit="kg"
           subtitle={topE1rmLift ? topE1rmLift[0].replace('_', ' ') : 'No 1RM yet'}
           icon={Activity}
-          color="emerald"
+          color="lime"
         />
 
         <OverviewCard
@@ -219,7 +219,7 @@ export const Dashboard = () => {
           unit="g"
           subtitle={user?.target_protein_g ? `Goal: ${user.target_protein_g}g` : 'Logged protein'}
           icon={Flame}
-          color="cyan"
+          color="lime"
         />
 
         <OverviewCard

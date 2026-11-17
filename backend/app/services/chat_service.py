@@ -1,3 +1,4 @@
+import re
 from datetime import date
 from typing import Dict, List
 
@@ -117,19 +118,54 @@ class ChatService:
             count = len(saved_readiness)
             saved_parts.append(f"{count} recovery entr{'ies' if count > 1 else 'y'}")
 
+        # Check if user message has conversational or advisory intent
+        lower_msg = message.lower()
+        conversational_triggers = [
+            "give me",
+            "suggest",
+            "recommend",
+            "what",
+            "how",
+            "why",
+            "who",
+            "tell me",
+            "can you",
+            "should i",
+            "routine",
+            "split",
+            "plan",
+            "diet",
+            "advice",
+            "help",
+            "hello",
+            "hi",
+            "hey",
+        ]
+        is_conversational = any(t in lower_msg for t in conversational_triggers)
+
         if saved_parts:
             reply_text = f"Logged {', '.join(saved_parts)}."
-        else:
-            reply_text = "I received your message."
-
-        clarification_items = [
-            ClarificationItem(field=c.field, exercise=c.exercise, question=c.question)
-            for c in parse_result.clarifications
-        ]
-
-        if clarification_items:
+            clarification_items = [
+                ClarificationItem(field=c.field, exercise=c.exercise, question=c.question)
+                for c in parse_result.clarifications
+            ]
+            if clarification_items:
+                questions_text = " ".join(c.question for c in clarification_items)
+                reply_text = f"{reply_text} Note: {questions_text}".strip()
+        elif is_conversational:
+            reply_text = self.generate_ai_conversational_reply(message, user)
+            clarification_items = []
+        elif parse_result.clarifications:
+            reply_text = "I parsed your statement, but I need a quick clarification:"
+            clarification_items = [
+                ClarificationItem(field=c.field, exercise=c.exercise, question=c.question)
+                for c in parse_result.clarifications
+            ]
             questions_text = " ".join(c.question for c in clarification_items)
             reply_text = f"{reply_text} {questions_text}".strip()
+        else:
+            reply_text = self.generate_ai_conversational_reply(message, user)
+            clarification_items = []
 
         return ChatResponse(
             reply=reply_text,
@@ -141,4 +177,136 @@ class ChatService:
             clarifications=clarification_items,
             warnings=warnings,
             metrics={"session_volume_kg": round(session_volume, 1), "best_e1rm": best_e1rm},
+        )
+
+    def generate_ai_conversational_reply(self, message: str, user: User) -> str:
+        """
+        Conversational Fitness Coach AI engine (like Grok for fitness intelligence).
+        Answers diet, calorie, workout, and recovery queries intelligently with actionable advice.
+        """
+        msg = message.lower().strip()
+        user_name = user.name or "Athlete"
+
+        # 1. Greetings / Help
+        tokens = set(re.findall(r"\b[a-z]+\b", msg))
+        greeting_words = {"hi", "hello", "hey", "greetings", "sup", "help"}
+        if (greeting_words & tokens) or any(
+            phrase in msg for phrase in ["good morning", "good evening", "who are you", "what can you do"]
+        ):
+            return (
+                f"Hello {user_name}! I am your MyFitSync AI Coach. "
+                "I can answer training and nutrition questions or automatically log your workouts, meals, and recovery. "
+                "Try asking me for advice (e.g., 'high protein food list', 'how to increase bench press') "
+                "or log directly in plain English (e.g., 'Squats 100kg 5 reps 3 sets, ate 2 boiled eggs')."
+            )
+
+        # 2. Food & Calorie Lookups
+        if any(
+            w in msg
+            for w in [
+                "egg",
+                "eggs",
+                "protein in",
+                "calories in",
+                "how many calories",
+                "macro",
+                "macros",
+                "nutrition for",
+            ]
+        ):
+            if "egg" in msg:
+                return (
+                    "🥚 Boiled Egg Nutrition (per large egg ~50g):\n"
+                    "• Calories: 78 kcal\n"
+                    "• Protein: 6.3 g (High biological value)\n"
+                    "• Carbs: 0.6 g\n"
+                    "• Fat: 5.3 g (Healthy monounsaturated & polyunsaturated fats)\n\n"
+                    "Pro-Tip: Egg whites alone contain ~17 kcal and 3.6g protein with near-zero fat. You can log it anytime: 'Ate 3 boiled eggs'."
+                )
+            if "chicken" in msg:
+                return (
+                    "🍗 Cooked Chicken Breast (per 100g):\n"
+                    "• Calories: 165 kcal\n"
+                    "• Protein: 31.0 g\n"
+                    "• Carbs: 0.0 g\n"
+                    "• Fat: 3.6 g\n\n"
+                    "Pro-Tip: Ideal lean protein source for muscle protein synthesis. Log with: 'Ate 200g chicken breast'."
+                )
+            if "rice" in msg:
+                return (
+                    "🍚 Cooked White Rice (per 100g):\n"
+                    "• Calories: 130 kcal\n"
+                    "• Protein: 2.7 g\n"
+                    "• Carbs: 28.0 g\n"
+                    "• Fat: 0.3 g\n\n"
+                    "Pro-Tip: Fast-digesting carbohydrates great for post-workout glycogen replenishment."
+                )
+
+        # 3. Diet, Macro Split & Calorie Advice
+        if any(
+            w in msg
+            for w in [
+                "diet",
+                "meal plan",
+                "what to eat",
+                "what should i eat",
+                "high protein",
+                "nutrition advice",
+                "protein target",
+                "bulking",
+                "cutting",
+            ]
+        ):
+            bw = user.bodyweight_kg or 75.0
+            target_p = round(bw * 2.0, 1)
+            target_cals = user.target_calories or 2500
+            return (
+                f"🥗 Personalized Nutrition Strategy for {user_name} ({bw} kg):\n"
+                f"• Daily Calorie Target: ~{target_cals} kcal/day\n"
+                f"• Optimal Protein Goal: ~{target_p} g/day (2.0g/kg bodyweight for maximum muscle protein synthesis)\n"
+                "• High-Protein Staples: Chicken breast, eggs/egg whites, whey protein, Greek yogurt, paneer, tofu, salmon\n"
+                "• Complex Carbohydrates: Rolled oats, jasmine rice, sweet potatoes, whole wheat roti/bread\n"
+                "• Healthy Fats: Avocado, almonds, peanut butter, extra virgin olive oil\n\n"
+                "Would you like meal recommendations for pre-workout energy or post-workout recovery?"
+            )
+
+        # 4. Workout Advice & Progressive Overload
+        if any(
+            w in msg
+            for w in [
+                "workout",
+                "routine",
+                "split",
+                "exercise",
+                "bench",
+                "squat",
+                "deadlift",
+                "hypertrophy",
+                "progressive overload",
+                "training",
+            ]
+        ):
+            return (
+                "🏋️‍♂️ Evidence-Based Workout Programming Principles:\n"
+                "• Hypertrophy Volume: 10–20 hard sets per muscle group per week.\n"
+                "• Intensity & Proximity to Failure: Train mostly between RPE 7.5 and RPE 9.0 (1–2 reps in reserve).\n"
+                "• 1RM Brzycki Formulation: Estimated 1RM = Weight × (36 / (37 - Reps)).\n"
+                "• Proven Split Options: Push / Pull / Legs (3–6 days) or Upper / Lower (4 days).\n\n"
+                "Tell me your current goal (strength, hypertrophy, or fat loss) to tailor a routine!"
+            )
+
+        # 5. Recovery & Fatigue / Sleep / ACWR
+        if any(w in msg for w in ["sleep", "recovery", "sore", "soreness", "fatigue", "acwr", "tired", "rest"]):
+            return (
+                f"💤 Recovery & ACWR Directive for {user_name}:\n"
+                "• Sleep Duration: 7.5–9.0 hours per night for hormone optimization and central nervous system repair.\n"
+                "• Acute:Chronic Workload Ratio (ACWR): Keep your 7-day acute volume between 0.8 and 1.3 of your 28-day chronic volume to minimize injury risk.\n"
+                "• Active Recovery: When soreness is elevated, light walking, mobility drills, and adequate protein intake accelerate recovery much faster than complete bed rest."
+            )
+
+        # 6. Fallback Intelligent Guidance
+        return (
+            f"I hear you, {user_name}! I am your personal fitness intelligence assistant. "
+            "You can ask me questions about calories, macros, and workout splits, "
+            "or log your sets and meals directly (e.g. 'Squats 100 kg 5 reps 3 sets, ate 2 boiled eggs')."
         )

@@ -56,52 +56,52 @@ export const Login = () => {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-slate-800 bg-[#131B2A] p-6 sm:p-8 shadow-2xl">
+        <div className="rounded-2xl border border-[#20252E] bg-[#161A21] p-6 sm:p-8 shadow-2xl">
           {error && (
-            <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-300">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+            <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-[#FF5A5F]/30 bg-[#FF5A5F]/10 p-3.5 text-xs text-[#FF5A5F]">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
+              <label className="block text-xs font-semibold text-[#9AA3B2] mb-1.5">Email Address</label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
+                <Mail className="absolute left-3.5 top-3 h-4 w-4 text-[#9AA3B2]" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="athlete@example.com"
-                  className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full rounded-xl border border-[#20252E] bg-[#0B0D10] pl-10 pr-4 py-2.5 text-sm text-[#F5F7FA] placeholder-[#9AA3B2]/50 focus:border-[#C6FF3D] focus:outline-none focus:ring-1 focus:ring-[#C6FF3D]"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
+              <label className="block text-xs font-semibold text-[#9AA3B2] mb-1.5">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
+                <Lock className="absolute left-3.5 top-3 h-4 w-4 text-[#9AA3B2]" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full rounded-xl border border-[#20252E] bg-[#0B0D10] pl-10 pr-4 py-2.5 text-sm text-[#F5F7FA] placeholder-[#9AA3B2]/50 focus:border-[#C6FF3D] focus:outline-none focus:ring-1 focus:ring-[#C6FF3D]"
                   required
                 />
               </div>
             </div>
 
             <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center gap-2 text-slate-400 cursor-pointer">
+              <label className="flex items-center gap-2 text-[#9AA3B2] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-slate-800 bg-[#0B0F17] text-emerald-500 focus:ring-emerald-500"
+                  className="rounded border-[#20252E] bg-[#0B0D10] text-[#C6FF3D] focus:ring-[#C6FF3D]"
                 />
                 <span>Remember this device</span>
               </label>
@@ -110,7 +110,7 @@ export const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 py-3 text-sm font-bold text-slate-950 shadow-md shadow-emerald-500/20 hover:opacity-90 disabled:opacity-50 active:scale-95 transition-all"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#C6FF3D] hover:bg-[#b5f526] py-3 text-sm font-black text-[#0B0D10] shadow-lg shadow-[#C6FF3D]/10 disabled:opacity-50 active:scale-95 transition-all"
             >
               {isLoading ? (
                 <span>Signing in...</span>
@@ -125,9 +125,9 @@ export const Login = () => {
         </div>
 
         {/* Bottom switch to register */}
-        <p className="mt-6 text-center text-xs text-slate-400">
+        <p className="mt-6 text-center text-xs text-[#9AA3B2]">
           Don't have an account yet?{' '}
-          <Link to="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 hover:underline">
+          <Link to="/register" className="font-semibold text-[#C6FF3D] hover:underline">
             Create an account
           </Link>
         </p>

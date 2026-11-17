@@ -3,7 +3,15 @@
  * Handles token attachment, request configuration, error normalization, and 401 auto-logout.
  */
 
-const rawEnvUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').trim().replace(/\/+$/, '');
+const getProductionFallbackUrl = () => {
+  if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app')) {
+    return 'https://myfitsync-backend.onrender.com/api/v1';
+  }
+  return 'http://localhost:8000/api/v1';
+};
+
+const defaultBaseUrl = getProductionFallbackUrl();
+const rawEnvUrl = (import.meta.env.VITE_API_BASE_URL || defaultBaseUrl).trim().replace(/\/+$/, '');
 const API_BASE_URL = rawEnvUrl.endsWith('/api/v1') ? rawEnvUrl : `${rawEnvUrl}/api/v1`;
 
 class ApiClient {
@@ -82,7 +90,12 @@ class ApiClient {
     } catch (err) {
       if (!err.status) {
         // Network or fetch failure
-        const netErr = new Error('Network connection failed. Please check your internet connection or server status.');
+        const isRender = API_BASE_URL.includes('onrender.com');
+        const netErr = new Error(
+          isRender
+            ? 'Unable to connect to the backend server. If the server is on Render Free tier, it may take 30-50 seconds to wake up from sleep. Please try again shortly.'
+            : 'Network connection failed. Please check your internet connection or server status.'
+        );
         netErr.status = 0;
         netErr.code = 'network_error';
         throw netErr;
@@ -198,6 +211,17 @@ class ApiClient {
 
   async deleteNutrition(id) {
     return this.request(`/nutrition/${id}`, { method: 'DELETE' });
+  }
+
+  async estimateNutrition(foodName, quantity = 1, unit = 'pcs') {
+    return this.request('/nutrition/estimate', {
+      method: 'POST',
+      body: JSON.stringify({
+        food_name: foodName,
+        quantity: parseFloat(quantity) || 1,
+        unit: unit || 'pcs',
+      }),
+    });
   }
 
   // --- Readiness Endpoints ---

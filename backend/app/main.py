@@ -164,6 +164,19 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 # Top-level ops health check aliases
+@app.get("/", tags=["ops"])
+@app.head("/", tags=["ops"])
+def root():
+    return {
+        "status": "healthy",
+        "service": settings.PROJECT_NAME,
+        "environment": settings.ENVIRONMENT,
+        "docs_url": "/docs",
+        "health_check": "/health",
+        "api_v1": settings.API_V1_STR,
+    }
+
+
 @app.get("/health", tags=["ops"])
 def top_health():
     return {"status": "ok", "service": "MyFitSync Root"}

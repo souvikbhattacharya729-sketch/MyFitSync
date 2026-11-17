@@ -22,7 +22,7 @@ export const Sidebar = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-slate-800 bg-[#0B0F17]/95 p-4 shrink-0 transition-colors duration-200">
+      <aside className="hidden md:flex w-64 flex-col border-r border-[#20252E] bg-[#0B0D10]/95 p-4 shrink-0 transition-colors duration-200">
         <nav className="flex flex-col gap-1.5" aria-label="Main Navigation">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -33,8 +33,8 @@ export const Sidebar = () => {
                 className={({ isActive }) =>
                   `flex items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-gradient-to-r from-emerald-500/15 to-cyan-500/10 text-emerald-400 font-semibold border border-emerald-500/30 shadow-sm shadow-emerald-500/5'
-                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                      ? 'bg-[#C6FF3D]/10 text-[#C6FF3D] font-bold border border-[#C6FF3D]/25 shadow-sm shadow-[#C6FF3D]/5'
+                      : 'text-[#9AA3B2] hover:text-[#F5F7FA] hover:bg-[#20252E]'
                   }`
                 }
               >
@@ -46,9 +46,9 @@ export const Sidebar = () => {
         </nav>
       </aside>
 
-      {/* Mobile Bottom Navigation Bar (WCAG AA accessible touch target) */}
+      {/* Mobile Bottom Navigation Bar */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-slate-800 bg-[#0B0F17]/95 px-2 backdrop-blur-md"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-[#20252E] bg-[#0B0D10]/95 px-2 backdrop-blur-md"
         aria-label="Mobile Bottom Navigation"
       >
         {navItems.map((item) => {
@@ -59,7 +59,7 @@ export const Sidebar = () => {
               to={item.to}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center min-w-[48px] min-h-[48px] py-1 text-[10px] font-medium transition-colors ${
-                  isActive ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+                  isActive ? 'text-[#C6FF3D] font-bold' : 'text-[#9AA3B2] hover:text-[#F5F7FA]'
                 }`
               }
               aria-label={item.label}
