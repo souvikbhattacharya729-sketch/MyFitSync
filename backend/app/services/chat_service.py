@@ -13,6 +13,7 @@ from app.schemas.chat import ChatResponse, ClarificationItem, SavedRecords
 from app.schemas.nutrition import NutritionOut
 from app.schemas.readiness import ReadinessOut
 from app.schemas.workout import WorkoutOut
+from app.services.coach_service import coach_reply
 from app.services.nlp_parser import DeterministicNLPParser, ParseResult
 
 
@@ -153,7 +154,8 @@ class ChatService:
                 questions_text = " ".join(c.question for c in clarification_items)
                 reply_text = f"{reply_text} Note: {questions_text}".strip()
         elif is_conversational:
-            reply_text = self.generate_ai_conversational_reply(message, user)
+            coach_text = coach_reply(db, user, message)
+            reply_text = coach_text if coach_text is not None else self.generate_ai_conversational_reply(message, user)
             clarification_items = []
         elif parse_result.clarifications:
             reply_text = "I parsed your statement, but I need a quick clarification:"
@@ -164,7 +166,8 @@ class ChatService:
             questions_text = " ".join(c.question for c in clarification_items)
             reply_text = f"{reply_text} {questions_text}".strip()
         else:
-            reply_text = self.generate_ai_conversational_reply(message, user)
+            coach_text = coach_reply(db, user, message)
+            reply_text = coach_text if coach_text is not None else self.generate_ai_conversational_reply(message, user)
             clarification_items = []
 
         return ChatResponse(
