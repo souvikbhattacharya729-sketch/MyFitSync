@@ -6,6 +6,7 @@ import pytest
 from fastapi import status
 
 from app.models.coach import CoachUsage
+from app.models.nutrition import Nutrition
 from app.models.workout import Workout
 from app.services import coach_service
 from app.services.coach_service import build_context, is_crisis
@@ -168,6 +169,89 @@ def test_hide_calorie_targets_withholds_targets(db_session, test_user_a):
     ctx = build_context(db_session, test_user_a, include_targets=True)
     assert "Targets: withheld" in ctx
     assert "Daily Target:" not in ctx
+
+
+def test_restriction_question_withholds_meal_calories(db_session, test_user_a, monkeypatch):
+    test_user_a.height_cm = 180.0
+    test_user_a.age = 26
+    test_user_a.sex = "male"
+    test_user_a.activity_level = "moderate"
+    test_user_a.goal = "lose"
+    test_user_a.hide_calorie_targets = False
+
+    meal = Nutrition(
+        user_id=test_user_a.user_id,
+        eaten_on=date.today(),
+        meal_title="Chicken Bowl",
+        calories=650,
+        protein_g=45.0,
+        carbs_g=60.0,
+        fat_g=20.0,
+    )
+    db_session.add(meal)
+    db_session.commit()
+
+    monkeypatch.setenv("COACH_ENABLED", "true")
+    monkeypatch.setenv("GROQ_API_KEY", "mock_key")
+
+    mock_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_choice = MagicMock()
+    mock_choice.message.content = "Please nourish your body."
+    mock_resp.choices = [mock_choice]
+    mock_client.chat.completions.create.return_value = mock_resp
+
+    with patch.object(coach_service, "get_client", return_value=mock_client):
+        coach_service.answer(db_session, test_user_a, "Should I starve myself to lose weight?")
+        call_args = mock_client.chat.completions.create.call_args
+        assert call_args is not None
+        user_content = call_args.kwargs["messages"][1]["content"]
+
+        assert "Chicken Bowl - calories withheld" in user_content
+        assert "650" not in user_content
+        assert "kcal" not in user_content
+        assert "45.0g P" not in user_content
+
+
+def test_hide_calorie_targets_withholds_meal_calories(db_session, test_user_a):
+    test_user_a.hide_calorie_targets = True
+    meal = Nutrition(
+        user_id=test_user_a.user_id,
+        eaten_on=date.today(),
+        meal_title="Protein Shake",
+        calories=300,
+        protein_g=30.0,
+        carbs_g=10.0,
+        fat_g=5.0,
+    )
+    db_session.add(meal)
+    db_session.commit()
+
+    ctx = build_context(db_session, test_user_a, include_targets=True)
+    assert "Protein Shake - calories withheld" in ctx
+    assert "300" not in ctx
+    assert "kcal" not in ctx
+    assert "30.0g P" not in ctx
+
+
+def test_normal_question_includes_meal_calories(db_session, test_user_a):
+    test_user_a.hide_calorie_targets = False
+    meal = Nutrition(
+        user_id=test_user_a.user_id,
+        eaten_on=date.today(),
+        meal_title="Oatmeal",
+        calories=400,
+        protein_g=15.0,
+        carbs_g=70.0,
+        fat_g=8.0,
+    )
+    db_session.add(meal)
+    db_session.commit()
+
+    ctx = build_context(db_session, test_user_a, include_targets=True)
+    assert "Oatmeal" in ctx
+    assert "calories withheld" not in ctx
+    assert "400.0 kcal" in ctx
 
 
 def test_daily_user_limit(client, auth_headers_user_a, monkeypatch):

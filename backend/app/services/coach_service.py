@@ -184,16 +184,20 @@ def build_context(db: Session, user: User, include_targets: bool = True) -> str:
         .all()
     )
     nutrition_lines: List[str] = []
+    withhold_calories = getattr(user, "hide_calorie_targets", False) or not include_targets
     if nutrition_entries:
         for n in nutrition_entries:
-            cal_str = f"{n.calories} kcal" if n.calories is not None else "N/A kcal"
-            p_str = f"{n.protein_g}g P" if n.protein_g is not None else ""
-            c_str = f"{n.carbs_g}g C" if n.carbs_g is not None else ""
-            f_str = f"{n.fat_g}g F" if n.fat_g is not None else ""
-            macros = ", ".join(filter(None, [p_str, c_str, f_str]))
-            macros_part = f" ({macros})" if macros else ""
             title = n.meal_title or "Meal"
-            nutrition_lines.append(f"- {n.eaten_on}: {title} - {cal_str}{macros_part}")
+            if withhold_calories:
+                nutrition_lines.append(f"- {n.eaten_on}: {title} - calories withheld")
+            else:
+                cal_str = f"{n.calories} kcal" if n.calories is not None else "N/A kcal"
+                p_str = f"{n.protein_g}g P" if n.protein_g is not None else ""
+                c_str = f"{n.carbs_g}g C" if n.carbs_g is not None else ""
+                f_str = f"{n.fat_g}g F" if n.fat_g is not None else ""
+                macros = ", ".join(filter(None, [p_str, c_str, f_str]))
+                macros_part = f" ({macros})" if macros else ""
+                nutrition_lines.append(f"- {n.eaten_on}: {title} - {cal_str}{macros_part}")
     else:
         nutrition_lines.append("None logged in the last 14 days.")
 
