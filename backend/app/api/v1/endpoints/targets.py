@@ -5,10 +5,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user_id
 from app.core.sports_science import (
     TARGETS_ESTIMATE_DISCLAIMER,
-    bmr,
-    daily_target,
-    macro_targets,
-    tdee,
+    calculate_user_targets,
 )
 from app.models.user import User
 from app.schemas.targets import MacroTargets, TargetsOut
@@ -32,46 +29,16 @@ def get_user_targets(
             detail="User not found.",
         )
 
-    # Check for required profile parameters
-    missing_fields = []
-    if not user.bodyweight_kg or user.bodyweight_kg <= 0:
-        missing_fields.append("bodyweight_kg")
-    if not user.height_cm:
-        missing_fields.append("height_cm")
-    if not user.age:
-        missing_fields.append("age")
-    if not user.sex:
-        missing_fields.append("sex")
-    if not user.activity_level:
-        missing_fields.append("activity_level")
-    if not user.goal:
-        missing_fields.append("goal")
-
-    if missing_fields:
+    targets_dict = calculate_user_targets(user)
+    if not targets_dict["profile_complete"]:
         return TargetsOut(
             profile_complete=False,
-            missing_fields=missing_fields,
+            missing_fields=targets_dict["missing_fields"],
             disclaimer=TARGETS_ESTIMATE_DISCLAIMER,
             hide_calorie_targets=user.hide_calorie_targets,
         )
 
-    # All fields validated and present
-    user_bmr = bmr(
-        weight_kg=float(user.bodyweight_kg),
-        height_cm=float(user.height_cm),
-        age=int(user.age),
-        sex=str(user.sex),
-    )
-    user_tdee = tdee(user_bmr, str(user.activity_level))
-    target_res = daily_target(user_tdee, str(user.goal), str(user.sex))
-    cal_target = int(target_res["target_calories"])
-
-    macros_dict = macro_targets(
-        calories=float(cal_target),
-        weight_kg=float(user.bodyweight_kg),
-        goal=str(user.goal),
-    )
-
+    macros_dict = targets_dict["macros"]
     macro_obj = MacroTargets(
         protein_g=macros_dict["protein_g"],
         protein_kcal=macros_dict["protein_kcal"],
@@ -87,13 +54,13 @@ def get_user_targets(
     return TargetsOut(
         profile_complete=True,
         missing_fields=[],
-        bmr=user_bmr,
-        tdee=user_tdee,
-        calorie_target=cal_target,
-        raw_target_calories=float(target_res["raw_target"]),
-        safe_floor_applied=bool(target_res["below_floor_flag"]),
-        safe_floor_kcal=int(target_res["safe_floor"]),
-        floor_warning=str(target_res["warning"]) if target_res["warning"] else None,
+        bmr=targets_dict["bmr"],
+        tdee=targets_dict["tdee"],
+        calorie_target=targets_dict["calorie_target"],
+        raw_target_calories=targets_dict["raw_target_calories"],
+        safe_floor_applied=targets_dict["safe_floor_applied"],
+        safe_floor_kcal=targets_dict["safe_floor_kcal"],
+        floor_warning=targets_dict["floor_warning"],
         macros=macro_obj,
         disclaimer=TARGETS_ESTIMATE_DISCLAIMER,
         hide_calorie_targets=user.hide_calorie_targets,
