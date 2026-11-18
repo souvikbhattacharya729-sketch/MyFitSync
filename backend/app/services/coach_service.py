@@ -51,6 +51,16 @@ CRISIS_WORDS: Tuple[str, ...] = (
     "hanging myself",
     "overdose",
     "overdosing",
+    "end it all",
+    "don't want to be here",
+    "dont want to be here",
+    "no reason to live",
+    "want to disappear",
+    "better off dead",
+    "take my own life",
+    "don't want to be alive",
+    "do not want to be alive",
+    "want to be dead",
 )
 
 RESTRICTION_WORDS: Tuple[str, ...] = (

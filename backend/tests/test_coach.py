@@ -85,6 +85,43 @@ def test_is_crisis_keywords():
     assert is_crisis("Tell me about calorie targets") is False
 
 
+def test_is_crisis_new_phrases():
+    new_phrases = [
+        "end it all",
+        "don't want to be here",
+        "dont want to be here",
+        "no reason to live",
+        "want to disappear",
+        "better off dead",
+        "take my own life",
+        "don't want to be alive",
+        "do not want to be alive",
+        "want to be dead",
+    ]
+    for phrase in new_phrases:
+        assert is_crisis(f"I feel overwhelmed and {phrase}") is True, f"Failed for: {phrase}"
+        assert is_crisis(phrase.upper()) is True, f"Failed for uppercase: {phrase}"
+
+    # Normal fitness messages must not trigger is_crisis
+    assert is_crisis("How much protein do I need?") is False
+    assert is_crisis("My knee hurts when I squat") is False
+
+
+def test_crisis_endpoint_end_it_all_when_coach_disabled(client, auth_headers_user_a, monkeypatch):
+    monkeypatch.setenv("COACH_ENABLED", "false")
+    with patch.object(coach_service, "get_client") as mock_get_client:
+        res = client.post(
+            "/api/v1/chat",
+            json={"message": "I feel hopeless and want to end it all"},
+            headers=auth_headers_user_a,
+        )
+        assert res.status_code == status.HTTP_200_OK
+        reply = res.json()["reply"]
+        assert "support is available" in reply
+        assert "emergency services or crisis line" in reply
+        mock_get_client.assert_not_called()
+
+
 def test_restriction_question_withholds_targets(db_session, test_user_a, monkeypatch):
     # Set complete athletic profile
     test_user_a.height_cm = 180.0
