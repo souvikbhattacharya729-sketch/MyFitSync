@@ -84,6 +84,7 @@ def test_is_crisis_keywords():
     assert is_crisis("I am cutting myself") is True
     assert is_crisis("What is my dietary plan for today?") is False
     assert is_crisis("Tell me about calorie targets") is False
+    assert is_crisis("Did I overdose on protein?") is False
 
 
 def test_is_crisis_new_phrases():
@@ -414,14 +415,34 @@ def test_quota_increments_per_call(client, auth_headers_user_a, test_user_a, mon
 def test_alembic_migration_upgrade_and_downgrade():
     """Verify that alembic migration downgrades to 002_user_profile_targets and upgrades back to head."""
     from alembic.config import Config
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.exc import OperationalError
 
     from alembic import command
+    from app.core.config import settings
+
+    # Skip only if the database cannot be reached
+    db_url = settings.get_database_url()
+    try:
+        engine = create_engine(db_url, pool_pre_ping=True)
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except (OperationalError, ConnectionError, OSError) as exc:
+        pytest.skip(f"Database cannot be reached, skipping migration test: {exc}")
+    except Exception as exc:
+        err_msg = str(exc).lower()
+        if any(
+            term in err_msg for term in ["connection refused", "could not connect", "timeout", "nodename nor servname"]
+        ):
+            pytest.skip(f"Database cannot be reached, skipping migration test: {exc}")
+        raise
 
     ini_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
     alembic_cfg = Config(ini_path)
 
+    # Any migration error (schema/downgrade/upgrade issues) must fail the test
     try:
         command.downgrade(alembic_cfg, "002_user_profile_targets")
         command.upgrade(alembic_cfg, "head")
-    except Exception as exc:
-        pytest.skip(f"Database migration test skipped if DB unreachable: {exc}")
+    except (OperationalError, ConnectionError, OSError) as exc:
+        pytest.skip(f"Database cannot be reached during migration: {exc}")

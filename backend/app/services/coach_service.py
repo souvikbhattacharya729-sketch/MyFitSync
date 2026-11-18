@@ -49,7 +49,6 @@ CRISIS_WORDS: Tuple[str, ...] = (
     "harming myself",
     "hang myself",
     "hanging myself",
-    "overdose",
     "overdosing",
     "end it all",
     "don't want to be here",
