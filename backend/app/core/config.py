@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     # AI Coach (Groq)
     GROQ_API_KEY: Union[str, None] = None
     COACH_ENABLED: str = Field(default="false")
-    COACH_MODEL: str = Field(default="llama-3.3-70b-versatile")
+    COACH_MODEL: str = Field(default="qwen/qwen3.8-27b")
     COACH_MAX_TOKENS: int = Field(default=600)
     COACH_DAILY_LIMIT: int = Field(default=20)
     COACH_GLOBAL_DAILY_LIMIT: int = Field(default=1000)

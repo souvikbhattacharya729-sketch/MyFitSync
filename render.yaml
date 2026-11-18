@@ -31,7 +31,7 @@ services:
       - key: COACH_ENABLED
         value: "false"
       - key: COACH_MODEL
-        value: llama-3.3-70b-versatile
+        value: qwen/qwen3.8-27b
       - key: COACH_MAX_TOKENS
         value: "600"
       - key: COACH_DAILY_LIMIT

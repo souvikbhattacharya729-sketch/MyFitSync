@@ -230,7 +230,7 @@ def answer(db: Session, user: User, question: str) -> str:
     context = build_context(db, user, include_targets=include_targets)
 
     client = get_client()
-    model = os.getenv("COACH_MODEL") or getattr(settings, "COACH_MODEL", "llama-3.3-70b-versatile")
+    model = os.getenv("COACH_MODEL") or getattr(settings, "COACH_MODEL", "qwen/qwen3.8-27b")
     max_tokens = int(os.getenv("COACH_MAX_TOKENS", getattr(settings, "COACH_MAX_TOKENS", 600)))
 
     user_content = f"Athlete Context:\n{context}\n\nAthlete Question:\n{question}"
