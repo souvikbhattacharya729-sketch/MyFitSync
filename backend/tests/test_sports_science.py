@@ -3,6 +3,7 @@ from datetime import date, timedelta
 import pytest
 
 from app.core.sports_science import (
+    bmr,
     calculate_acwr_rolling,
     calculate_brzycki_1rm,
     calculate_macro_split,
@@ -10,6 +11,9 @@ from app.core.sports_science import (
     calculate_set_volume,
     calculate_wathan_1rm,
     compute_estimated_1rm,
+    daily_target,
+    macro_targets,
+    tdee,
 )
 
 
@@ -48,17 +52,17 @@ def test_compute_estimated_1rm_ranges():
     # Reps 11-12: Calculated but warning emitted
     p11, s11, warn11 = compute_estimated_1rm(100.0, 11)
     assert p11 is not None
-    assert "accuracy declines" in warn11
+    assert warn11 is not None and "accuracy declines" in warn11
 
     # Reps > 12: None stored for primary E1RM, formal validity warning emitted
     p15, s15, warn15 = compute_estimated_1rm(100.0, 15)
     assert p15 is None
-    assert "exceeds valid estimation boundary" in warn15
+    assert warn15 is not None and "exceeds valid estimation boundary" in warn15
 
     # Reps >= 37: Rejected safely
     p40, s40, warn40 = compute_estimated_1rm(100.0, 40)
     assert p40 is None
-    assert "exceeds maximum boundary" in warn40
+    assert warn40 is not None and "exceeds maximum boundary" in warn40
 
 
 def test_calculate_set_volume():
@@ -108,14 +112,14 @@ def test_acwr_calculated_zones():
     assert res["status"] == "calculated"
     assert res["acwr"] == 1.0  # Acute avg 2000 / Chronic avg 2000 = 1.0
     assert res["zone"] == "optimal"
-    assert "NOT validated clinical injury predictors" in res["disclaimer"]
+    assert isinstance(res["disclaimer"], str) and "NOT validated clinical injury predictors" in res["disclaimer"]
 
     # Spike in acute load (overreaching)
     loads_spike = dict(loads)
     for i in range(7):
         loads_spike[today - timedelta(days=i)] = 6000.0
     res_spike = calculate_acwr_rolling(loads_spike, target_date=today)
-    assert res_spike["acwr"] > 1.5
+    assert isinstance(res_spike["acwr"], float) and res_spike["acwr"] > 1.5
     assert res_spike["zone"] == "overreaching"
 
 
@@ -128,4 +132,81 @@ def test_calculate_macro_split():
     # Large discrepancy (> 10%)
     res_disc = calculate_macro_split(150.0, 200.0, 60.0, 3000.0)
     assert res_disc["discrepancy_flag"] is True
-    assert res_disc["discrepancy_percentage"] > 10.0
+    assert isinstance(res_disc["discrepancy_percentage"], float) and res_disc["discrepancy_percentage"] > 10.0
+
+
+def test_bmr_mifflin_st_jeor_known_values():
+    # Male: 80 kg, 180 cm, 30 years -> 10*80 + 6.25*180 - 5*30 + 5 = 800 + 1125 - 150 + 5 = 1780.0
+    assert bmr(80.0, 180.0, 30, "male") == 1780.0
+
+    # Female: 60 kg, 165 cm, 25 years -> 10*60 + 6.25*165 - 5*25 - 161 = 600 + 1031.25 - 125 - 161 = 1345.25 -> 1345.2
+    assert bmr(60.0, 165.0, 25, "female") == 1345.2
+
+
+def test_bmr_validation_boundaries():
+    with pytest.raises(ValueError, match="Weight must be strictly greater than 0"):
+        bmr(-5.0, 175.0, 25, "male")
+    with pytest.raises(ValueError, match="Height must be between 100 and 250 cm"):
+        bmr(70.0, 80.0, 25, "male")
+    with pytest.raises(ValueError, match="Height must be between 100 and 250 cm"):
+        bmr(70.0, 280.0, 25, "male")
+    with pytest.raises(ValueError, match="Age must be between 13 and 100 years"):
+        bmr(70.0, 175.0, 10, "male")
+    with pytest.raises(ValueError, match="Sex must be 'male' or 'female'"):
+        bmr(70.0, 175.0, 25, "other")
+
+
+def test_tdee_known_factors():
+    base_bmr = 1780.0
+    assert tdee(base_bmr, "sedentary") == 2136.0
+    assert tdee(base_bmr, "light") == 2447.5
+    assert tdee(base_bmr, "moderate") == 2759.0
+    assert tdee(base_bmr, "very_active") == 3070.5
+    assert tdee(base_bmr, "extra_active") == 3382.0
+
+    with pytest.raises(ValueError, match="Invalid activity level"):
+        tdee(base_bmr, "olympic_athlete")
+    with pytest.raises(ValueError, match="BMR must be strictly greater than 0"):
+        tdee(-100.0, "moderate")
+
+
+def test_daily_target_goals_and_floor():
+    base_tdee = 2400.0
+    assert daily_target(base_tdee, "maintain")["target_calories"] == 2400
+    assert daily_target(base_tdee, "lose")["target_calories"] == 1900
+    assert daily_target(base_tdee, "gain")["target_calories"] == 2700
+
+    # Female safe floor check (< 1200 kcal deficit clamped to 1200 with flag)
+    res_female = daily_target(1500.0, "lose", sex="female")
+    assert res_female["target_calories"] == 1200
+    assert res_female["below_floor_flag"] is True
+    assert res_female["safe_floor"] == 1200
+    assert "below the recommended minimum" in str(res_female["warning"])
+
+    # Male safe floor check (< 1500 kcal deficit clamped to 1500 with flag)
+    res_male = daily_target(1800.0, "lose", sex="male")
+    assert res_male["target_calories"] == 1500
+    assert res_male["below_floor_flag"] is True
+    assert res_male["safe_floor"] == 1500
+    assert "below the recommended minimum" in str(res_male["warning"])
+
+
+def test_macro_targets_calculations():
+    # 2000 kcal, 75kg, maintain, protein 1.8g/kg
+    macros = macro_targets(calories=2000.0, weight_kg=75.0, goal="maintain", protein_g_per_kg=1.8)
+    assert macros["protein_g"] == 135.0  # 75 * 1.8
+    assert macros["protein_kcal"] == 540.0
+    assert macros["fat_kcal"] == 500.0  # 25% of 2000
+    assert macros["fat_g"] == 55.6  # 500 / 9
+    assert macros["carbs_kcal"] == 960.0  # 2000 - 540 - 500
+    assert macros["carbs_g"] == 240.0  # 960 / 4
+
+    # Gain goal: 30% fat
+    macros_gain = macro_targets(calories=2500.0, weight_kg=80.0, goal="gain", protein_g_per_kg=2.0)
+    assert macros_gain["protein_g"] == 160.0
+    assert macros_gain["fat_kcal"] == 750.0  # 30% of 2500
+
+    with pytest.raises(ValueError, match="Calories must be strictly greater than 0"):
+        macro_targets(0.0, 75.0)
+    with pytest.raises(ValueError, match="Protein per kg must be between 1.6 and 2.2"):
+        macro_targets(2000.0, 75.0, protein_g_per_kg=1.2)

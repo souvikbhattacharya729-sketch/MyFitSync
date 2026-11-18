@@ -231,3 +231,59 @@ def test_chat_ai_conversational_queries(client, auth_headers_user_a):
     )
     assert res_gen.status_code == status.HTTP_200_OK
     assert "MyFitSync" in res_gen.json()["reply"] or "Coach" in res_gen.json()["reply"]
+
+
+def test_targets_endpoint_flow_and_isolation(client, auth_headers_user_a, auth_headers_user_b):
+    # 1. User A initial targets check (incomplete profile)
+    res_init = client.get("/api/v1/targets", headers=auth_headers_user_a)
+    assert res_init.status_code == status.HTTP_200_OK
+    init_data = res_init.json()
+    assert init_data["profile_complete"] is False
+    assert "height_cm" in init_data["missing_fields"]
+    assert "age" in init_data["missing_fields"]
+    assert "disclaimer" in init_data
+    assert "nationaleatingdisorders.org" in init_data["eating_disorder_help_url"]
+
+    # 2. Update User A's profile with complete biometric parameters
+    update_payload = {
+        "bodyweight_kg": 80.0,
+        "height_cm": 180.0,
+        "age": 30,
+        "sex": "male",
+        "activity_level": "moderate",
+        "goal": "lose",
+        "hide_calorie_targets": False,
+    }
+    res_update = client.patch("/api/v1/auth/me", json=update_payload, headers=auth_headers_user_a)
+    assert res_update.status_code == status.HTTP_200_OK
+    assert res_update.json()["height_cm"] == 180.0
+    assert res_update.json()["goal"] == "lose"
+
+    # 3. Retrieve targets for User A (now complete)
+    res_targets = client.get("/api/v1/targets", headers=auth_headers_user_a)
+    assert res_targets.status_code == status.HTTP_200_OK
+    target_data = res_targets.json()
+    assert target_data["profile_complete"] is True
+    assert target_data["missing_fields"] == []
+    # BMR: 10*80 + 6.25*180 - 5*30 + 5 = 1780.0
+    assert target_data["bmr"] == 1780.0
+    # TDEE: 1780 * 1.55 = 2759.0
+    assert target_data["tdee"] == 2759.0
+    # Goal lose: 2759.0 - 500 = 2259.0 -> 2259 kcal
+    assert target_data["calorie_target"] == 2259
+    assert target_data["macros"]["protein_g"] == 144.0  # 80 * 1.8
+    assert target_data["macros"]["fat_g"] > 0
+    assert target_data["macros"]["carbs_g"] > 0
+
+    # 4. Multi-tenant isolation: User B's targets should remain distinct / incomplete
+    res_b = client.get("/api/v1/targets", headers=auth_headers_user_b)
+    assert res_b.status_code == status.HTTP_200_OK
+    data_b = res_b.json()
+    assert data_b["profile_complete"] is False  # User B hasn't set their height/age/etc.
+
+    # 5. Hide calorie targets toggle test
+    res_hide = client.patch("/api/v1/auth/me", json={"hide_calorie_targets": True}, headers=auth_headers_user_a)
+    assert res_hide.status_code == status.HTTP_200_OK
+    assert res_hide.json()["hide_calorie_targets"] is True
+    res_targets_hidden = client.get("/api/v1/targets", headers=auth_headers_user_a)
+    assert res_targets_hidden.json()["hide_calorie_targets"] is True

@@ -49,40 +49,46 @@ export const ReadinessModal = ({ isOpen, onClose, onSave, entry = null }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-[#131B2A] p-6 shadow-2xl">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
-              <Moon className="h-4 w-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-sage-forest/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-2xl border border-sage-border bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between pb-4 border-b border-sage-border">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-mint text-sage-action border border-sage-sage/30 shadow-sm">
+              <Moon className="h-5 w-5" />
             </div>
-            <h3 className="text-base font-bold text-white">Log Recovery & Readiness</h3>
+            <div>
+              <h3 className="text-base font-bold text-sage-forest">Log Recovery & Readiness</h3>
+              <p className="text-[11px] text-sage-muted">Track sleep, soreness, and resting heart rate</p>
+            </div>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-800">
+          <button
+            onClick={onClose}
+            className="rounded-xl p-2 text-sage-muted hover:text-sage-forest hover:bg-sage-surface transition-colors"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 font-medium">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Date</label>
+            <label className="block text-xs font-bold text-sage-forest mb-1.5">Date</label>
             <input
               type="date"
               value={loggedDate}
               onChange={(e) => setLoggedDate(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3.5 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-sage-border bg-white px-3.5 py-2.5 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm font-medium"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Sleep Duration (Hours)</label>
+            <label className="block text-xs font-bold text-sage-forest mb-1.5">Sleep Duration (Hours)</label>
             <input
               type="number"
               step="0.25"
@@ -91,12 +97,12 @@ export const ReadinessModal = ({ isOpen, onClose, onSave, entry = null }) => {
               value={sleepHours}
               onChange={(e) => setSleepHours(e.target.value)}
               placeholder="e.g. 7.5"
-              className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3.5 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-sage-border bg-white px-3.5 py-2.5 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm font-semibold"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Soreness Rating (1 = Fresh, 10 = Severe)</label>
+            <label className="block text-xs font-bold text-sage-forest mb-1.5">Soreness Rating (1 = Fresh, 10 = Severe)</label>
             <input
               type="number"
               step="0.5"
@@ -105,12 +111,12 @@ export const ReadinessModal = ({ isOpen, onClose, onSave, entry = null }) => {
               value={sorenessScore}
               onChange={(e) => setSorenessScore(e.target.value)}
               placeholder="e.g. 3"
-              className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3.5 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-sage-border bg-white px-3.5 py-2.5 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm font-semibold"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Resting Heart Rate (BPM)</label>
+            <label className="block text-xs font-bold text-sage-forest mb-1.5">Resting Heart Rate (BPM)</label>
             <input
               type="number"
               min="1"
@@ -118,21 +124,21 @@ export const ReadinessModal = ({ isOpen, onClose, onSave, entry = null }) => {
               value={restingHr}
               onChange={(e) => setRestingHr(e.target.value)}
               placeholder="e.g. 52"
-              className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3.5 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-sage-border bg-white px-3.5 py-2.5 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm font-semibold"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex justify-end gap-3 pt-3 border-t border-sage-border">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+              className="rounded-xl px-4 py-2.5 text-xs font-semibold text-sage-muted hover:text-sage-forest hover:bg-sage-surface transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-2 text-xs font-semibold text-slate-950 shadow-md hover:opacity-90 active:scale-95 transition-all"
+              className="rounded-xl bg-sage-action hover:bg-sage-forest px-5 py-2.5 text-xs font-bold text-white shadow-card active:scale-95 transition-all"
             >
               Save Recovery
             </button>

@@ -248,3 +248,167 @@ def calculate_macro_split(
         "discrepancy_percentage": discrepancy_pct,
         "note": "Caloric breakdown uses standard Atwater factors (4/4/9 kcal/g).",
     }
+
+
+TARGETS_ESTIMATE_DISCLAIMER = (
+    "Disclaimer: Estimated energy expenditure (BMR/TDEE) and macronutrient recommendations "
+    "are statistical approximations based on standard population equations. They do not constitute "
+    "medical or dietary prescriptions. Consult a licensed dietitian or physician before making significant dietary changes."
+)
+
+ACTIVITY_FACTORS: Dict[str, float] = {
+    "sedentary": 1.2,
+    "light": 1.375,
+    "moderate": 1.55,
+    "very_active": 1.725,
+    "extra_active": 1.9,
+}
+
+
+def bmr(weight_kg: float, height_cm: float, age: int, sex: str) -> float:
+    """
+    Computes Basal Metabolic Rate (BMR) using the Mifflin-St Jeor equation.
+
+    Formula:
+        Male:   10 * weight_kg + 6.25 * height_cm - 5 * age + 5
+        Female: 10 * weight_kg + 6.25 * height_cm - 5 * age - 161
+
+    Validation:
+        - weight_kg > 0
+        - height_cm between 100 and 250 cm
+        - age between 13 and 100 years
+        - sex in ('male', 'female')
+    """
+    if weight_kg <= 0:
+        raise ValueError("Weight must be strictly greater than 0.")
+    if not (100.0 <= height_cm <= 250.0):
+        raise ValueError("Height must be between 100 and 250 cm.")
+    if not (13 <= age <= 100):
+        raise ValueError("Age must be between 13 and 100 years.")
+    norm_sex = sex.lower().strip()
+    if norm_sex not in ("male", "female"):
+        raise ValueError("Sex must be 'male' or 'female'.")
+
+    base = (10.0 * weight_kg) + (6.25 * height_cm) - (5.0 * age)
+    bmr_val = base + 5.0 if norm_sex == "male" else base - 161.0
+    return round(bmr_val, 1)
+
+
+def tdee(bmr_val: float, activity_level: str) -> float:
+    """
+    Computes Total Daily Energy Expenditure (TDEE).
+
+    Formula:
+        TDEE = BMR * Activity Factor
+        Factors:
+            - sedentary: 1.2
+            - light: 1.375
+            - moderate: 1.55
+            - very_active: 1.725
+            - extra_active: 1.9
+    """
+    if bmr_val <= 0:
+        raise ValueError("BMR must be strictly greater than 0.")
+    norm_level = activity_level.lower().strip()
+    if norm_level not in ACTIVITY_FACTORS:
+        raise ValueError(
+            f"Invalid activity level '{activity_level}'. Must be one of: {', '.join(ACTIVITY_FACTORS.keys())}"
+        )
+
+    factor = ACTIVITY_FACTORS[norm_level]
+    return round(bmr_val * factor, 1)
+
+
+def daily_target(tdee_val: float, goal: str, sex: str = "female") -> Dict[str, Union[int, float, bool, str, None]]:
+    """
+    Computes daily caloric target based on goal:
+        - lose: subtract 500 kcal
+        - gain: add 300 kcal
+        - maintain: unchanged
+
+    Floor check:
+        Never returns below 1200 kcal (female) or 1500 kcal (male) without flagging it.
+    """
+    if tdee_val <= 0:
+        raise ValueError("TDEE must be strictly greater than 0.")
+    norm_goal = goal.lower().strip()
+    if norm_goal not in ("lose", "maintain", "gain"):
+        raise ValueError("Goal must be 'lose', 'maintain', or 'gain'.")
+
+    norm_sex = sex.lower().strip() if sex else "female"
+    safe_floor = 1500 if norm_sex == "male" else 1200
+
+    if norm_goal == "lose":
+        raw_target = tdee_val - 500.0
+    elif norm_goal == "gain":
+        raw_target = tdee_val + 300.0
+    else:
+        raw_target = tdee_val
+
+    below_floor_flag = False
+    warning = None
+    target_cals = round(raw_target)
+
+    if target_cals < safe_floor:
+        below_floor_flag = True
+        target_cals = safe_floor
+        warning = (
+            f"Calculated deficit ({round(raw_target)} kcal) is below the recommended minimum "
+            f"safe floor of {safe_floor} kcal/day for {norm_sex}s. Target has been set to {safe_floor} kcal."
+        )
+
+    return {
+        "target_calories": int(target_cals),
+        "raw_target": round(raw_target, 1),
+        "below_floor_flag": below_floor_flag,
+        "safe_floor": safe_floor,
+        "warning": warning,
+    }
+
+
+def macro_targets(
+    calories: float, weight_kg: float, goal: str = "maintain", protein_g_per_kg: float = 1.8
+) -> Dict[str, float]:
+    """
+    Computes macro targets:
+        - protein: 1.6 - 2.2 g/kg (default 1.8 g/kg)
+        - fat: 25 - 30% of calories (default 25%, 30% for gain)
+        - carbs: remainder of calories
+        Standard Atwater factors: 4 kcal/g protein, 4 kcal/g carbs, 9 kcal/g fat.
+    """
+    if calories <= 0:
+        raise ValueError("Calories must be strictly greater than 0.")
+    if weight_kg <= 0:
+        raise ValueError("Weight must be strictly greater than 0.")
+    if not (1.6 <= protein_g_per_kg <= 2.2):
+        raise ValueError("Protein per kg must be between 1.6 and 2.2 g/kg.")
+
+    # 1. Protein
+    protein_g = round(weight_kg * protein_g_per_kg, 1)
+    protein_kcal = round(protein_g * 4.0, 1)
+
+    # 2. Fat (25% for maintain/cut, 30% for gain)
+    fat_ratio = 0.30 if goal.lower().strip() == "gain" else 0.25
+    fat_kcal = round(calories * fat_ratio, 1)
+    fat_g = round(fat_kcal / 9.0, 1)
+
+    # 3. Carbs (remainder)
+    carbs_kcal = max(0.0, round(calories - protein_kcal - fat_kcal, 1))
+    carbs_g = round(carbs_kcal / 4.0, 1)
+
+    total_macro_kcal = protein_kcal + fat_kcal + carbs_kcal
+    protein_pct = round((protein_kcal / total_macro_kcal) * 100, 1) if total_macro_kcal > 0 else 0.0
+    fat_pct = round((fat_kcal / total_macro_kcal) * 100, 1) if total_macro_kcal > 0 else 0.0
+    carbs_pct = round((carbs_kcal / total_macro_kcal) * 100, 1) if total_macro_kcal > 0 else 0.0
+
+    return {
+        "protein_g": protein_g,
+        "protein_kcal": protein_kcal,
+        "protein_pct": protein_pct,
+        "fat_g": fat_g,
+        "fat_kcal": fat_kcal,
+        "fat_pct": fat_pct,
+        "carbs_g": carbs_g,
+        "carbs_kcal": carbs_kcal,
+        "carbs_pct": carbs_pct,
+    }

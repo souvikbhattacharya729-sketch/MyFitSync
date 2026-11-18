@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, MessageSquareCode } from 'lucide-react';
+import { X, Send, Sparkles, MessageSquareCode, Zap } from 'lucide-react';
 import { useFitness } from '../../context/FitnessContext';
 import { api } from '../../services/api';
 import { ChatMessage } from './ChatMessage';
@@ -45,7 +45,6 @@ export const ChatDrawer = ({ isOpen, onClose }) => {
       text: text.trim(),
     };
 
-    // Optimistic UI display
     setMessages((prev) => [...prev, userMsg]);
     setInputValue('');
     setIsLoading(true);
@@ -67,7 +66,6 @@ export const ChatDrawer = ({ isOpen, onClose }) => {
         },
       ]);
 
-      // Automatically refresh dashboard data if records were saved
       const saved = response.saved || {};
       if (
         (saved.workouts && saved.workouts.length > 0) ||
@@ -101,107 +99,90 @@ export const ChatDrawer = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/60 backdrop-blur-sm transition-opacity">
-      <div className="absolute inset-y-0 right-0 flex max-w-full pl-10">
-        <div className="w-screen max-w-lg border-l border-slate-800 bg-[#0B0F17] shadow-2xl flex flex-col">
-          {/* Header */}
-          <div className="flex h-16 items-center justify-between border-b border-slate-800 px-6">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 text-slate-950">
-                <MessageSquareCode className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-white">Log in Plain English</h2>
-                <span className="text-[11px] text-emerald-400 font-medium">Deterministic NLP Engine Active</span>
-              </div>
+    <div className="fixed inset-0 z-50 flex justify-end bg-sage-forest/40 backdrop-blur-sm transition-opacity">
+      <div className="flex h-full w-full max-w-lg flex-col bg-white border-l border-sage-border shadow-2xl animate-in slide-in-from-right duration-200">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-sage-border px-5 py-4 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sage-mint text-sage-action border border-sage-sage/30 shadow-sm">
+              <Zap className="h-5 w-5 fill-sage-action" />
             </div>
-
-            <button
-              onClick={onClose}
-              className="rounded-xl border border-slate-800 p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              aria-label="Close Chat Drawer"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div>
+              <h2 className="text-sm font-bold text-sage-forest">Natural Language Logger</h2>
+              <p className="text-[11px] text-sage-muted">Track sets, meals, or sleep in one sentence</p>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="rounded-xl p-2 text-sage-muted hover:text-sage-forest hover:bg-sage-surface transition-colors"
+            aria-label="Close Assistant"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-          {/* Messages feed */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-            {messages.map((msg) => (
-              <ChatMessage
-                key={msg.id}
-                message={msg}
-                onSelectChip={(chipText) => handleSendMessage(chipText)}
-              />
-            ))}
+        {/* Messages Scroll Area */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-sage-bg/30">
+          {messages.map((msg) => (
+            <ChatMessage
+              key={msg.id}
+              message={msg}
+              onSelectChip={(chipText) => handleSendMessage(chipText)}
+            />
+          ))}
 
-            {isLoading && (
-              <div className="flex justify-start mb-4">
-                <div className="flex items-center gap-2 rounded-2xl bg-slate-900 border border-slate-800 px-4 py-3 text-xs text-slate-400">
-                  <div className="flex gap-1">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-bounce"></span>
-                    <span className="h-2 w-2 rounded-full bg-cyan-500 animate-bounce [animation-delay:0.2s]"></span>
-                    <span className="h-2 w-2 rounded-full bg-violet-500 animate-bounce [animation-delay:0.4s]"></span>
-                  </div>
-                  <span>Parsing workout, macros & sleep...</span>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Example Prompts for first-time / quick log */}
-          {messages.length <= 2 && (
-            <div className="px-6 py-2 border-t border-slate-850 bg-[#131B2A]/40">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 mb-1.5">
-                <Sparkles className="h-3 w-3 text-amber-400" />
-                <span>Example Prompts (click to try):</span>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                {EXAMPLE_PROMPTS.map((prompt, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSendMessage(prompt)}
-                    className="text-left text-xs text-slate-300 hover:text-emerald-400 hover:bg-slate-800/80 p-2 rounded-lg border border-slate-800/70 transition-colors line-clamp-1"
-                  >
-                    "{prompt}"
-                  </button>
-                ))}
+          {isLoading && (
+            <div className="flex justify-start mb-4">
+              <div className="flex items-center gap-2 rounded-2xl bg-white border border-sage-border px-4 py-2.5 text-xs text-sage-muted shadow-sm">
+                <div className="h-2 w-2 rounded-full bg-sage-action animate-bounce" />
+                <div className="h-2 w-2 rounded-full bg-sage-action animate-bounce [animation-delay:0.2s]" />
+                <div className="h-2 w-2 rounded-full bg-sage-action animate-bounce [animation-delay:0.4s]" />
+                <span className="ml-1 font-medium">Parsing training intelligence...</span>
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
+        </div>
 
-          {/* Input Box */}
-          <div className="border-t border-slate-800 bg-[#0B0F17] p-4">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-              }}
-              className="flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="e.g. Squat 100kg 5 reps 3 sets @8, ate 2200 kcal..."
-                className="flex-1 rounded-xl border border-slate-800 bg-[#131B2A] px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors"
-                disabled={isLoading}
-              />
+        {/* Example Quick Prompts */}
+        <div className="border-t border-sage-border bg-white px-4 py-2.5">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-sage-muted mb-1.5">
+            <Sparkles className="h-3 w-3 text-sage-action" />
+            <span>Try an Example:</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {EXAMPLE_PROMPTS.map((prompt, i) => (
               <button
-                type="submit"
-                disabled={isLoading || !inputValue.trim()}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 text-slate-950 font-semibold shadow-md shadow-emerald-500/20 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
-                aria-label="Send Message"
+                key={i}
+                onClick={() => handleSendMessage(prompt)}
+                className="whitespace-nowrap rounded-lg bg-sage-surface border border-sage-border px-2.5 py-1 text-[11px] text-sage-forest font-medium hover:bg-sage-mint hover:text-sage-action transition-all shadow-sm"
               >
-                <Send className="h-4 w-4" />
+                "{prompt.slice(0, 32)}..."
               </button>
-            </form>
-            <p className="mt-2 text-center text-[10px] text-slate-500">
-              Press Enter to send. Unambiguous entries are stored in a single transaction.
-            </p>
+            ))}
+          </div>
+        </div>
+
+        {/* Input Bar */}
+        <div className="border-t border-sage-border bg-white p-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. Squat 100kg 5x5, ate 2 boiled eggs..."
+              className="flex-1 rounded-xl border border-sage-border bg-sage-surface/60 px-4 py-2.5 text-sm text-sage-forest placeholder-sage-muted/60 focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action transition-all shadow-sm font-medium"
+              disabled={isLoading}
+            />
+            <button
+              onClick={() => handleSendMessage()}
+              disabled={isLoading || !inputValue.trim()}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sage-action hover:bg-sage-forest text-white font-bold shadow-card disabled:opacity-30 disabled:pointer-events-none transition-all active:scale-95"
+              aria-label="Send Message"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>

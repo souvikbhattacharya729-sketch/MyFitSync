@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Dumbbell } from 'lucide-react';
+import { X, Dumbbell, Zap } from 'lucide-react';
 
 const COMMON_EXERCISES = [
   'squat',
@@ -52,6 +52,11 @@ export const WorkoutModal = ({ isOpen, onClose, onSave, workout = null }) => {
 
   if (!isOpen) return null;
 
+  // Brzycki 1RM estimation preview: weight / (1.0278 - 0.0278 * reps)
+  const calc1rm = reps > 0 && reps <= 12 && weightKg > 0
+    ? Math.round((weightKg / (1.0278 - 0.0278 * reps)) * 10) / 10
+    : null;
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const finalExercise = exercise === 'custom' ? customExercise.trim().toLowerCase() : exercise;
@@ -80,35 +85,41 @@ export const WorkoutModal = ({ isOpen, onClose, onSave, workout = null }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-[#131B2A] p-6 shadow-2xl">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400">
-              <Dumbbell className="h-4 w-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-sage-forest/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-2xl border border-sage-border bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between pb-4 border-b border-sage-border">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-mint text-sage-action border border-sage-sage/30 shadow-sm">
+              <Dumbbell className="h-5 w-5" />
             </div>
-            <h3 className="text-base font-bold text-white">
-              {workout ? 'Edit Workout Entry' : 'Log Workout Entry'}
-            </h3>
+            <div>
+              <h3 className="text-base font-bold text-sage-forest">
+                {workout ? 'Edit Workout Entry' : 'Log Workout Entry'}
+              </h3>
+              <p className="text-[11px] text-sage-muted">Brzycki formula E1RM calculated automatically</p>
+            </div>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-800">
+          <button
+            onClick={onClose}
+            className="rounded-xl p-2 text-sage-muted hover:text-sage-forest hover:bg-sage-surface transition-colors"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 font-medium">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Exercise</label>
+            <label className="block text-xs font-bold text-sage-forest mb-1.5">Exercise</label>
             <select
               value={exercise}
               onChange={(e) => setExercise(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3.5 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-sage-border bg-white px-3.5 py-2.5 text-sm font-medium text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm"
             >
               {COMMON_EXERCISES.map((ex) => (
                 <option key={ex} value={ex}>
@@ -121,13 +132,13 @@ export const WorkoutModal = ({ isOpen, onClose, onSave, workout = null }) => {
 
           {exercise === 'custom' && (
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Custom Exercise Name</label>
+              <label className="block text-xs font-bold text-sage-forest mb-1.5">Custom Exercise Name</label>
               <input
                 type="text"
                 value={customExercise}
                 onChange={(e) => setCustomExercise(e.target.value)}
                 placeholder="e.g. Bulgarian Split Squat"
-                className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3.5 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-sage-border bg-white px-3.5 py-2.5 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm"
                 required
               />
             </div>
@@ -135,36 +146,36 @@ export const WorkoutModal = ({ isOpen, onClose, onSave, workout = null }) => {
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Weight (kg)</label>
+              <label className="block text-xs font-bold text-sage-forest mb-1.5">Weight (kg)</label>
               <input
                 type="number"
                 step="0.5"
                 min="0"
                 value={weightKg}
                 onChange={(e) => setWeightKg(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-sage-border bg-white px-3 py-2 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm font-semibold"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Reps</label>
+              <label className="block text-xs font-bold text-sage-forest mb-1.5">Reps</label>
               <input
                 type="number"
                 min="1"
                 value={reps}
                 onChange={(e) => setReps(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-sage-border bg-white px-3 py-2 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm font-semibold"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Sets</label>
+              <label className="block text-xs font-bold text-sage-forest mb-1.5">Sets</label>
               <input
                 type="number"
                 min="1"
                 value={sets}
                 onChange={(e) => setSets(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-sage-border bg-white px-3 py-2 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm font-semibold"
                 required
               />
             </div>
@@ -172,7 +183,7 @@ export const WorkoutModal = ({ isOpen, onClose, onSave, workout = null }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">RPE (1 - 10, opt)</label>
+              <label className="block text-xs font-bold text-sage-forest mb-1.5">RPE (1 - 10, opt)</label>
               <input
                 type="number"
                 step="0.5"
@@ -181,32 +192,42 @@ export const WorkoutModal = ({ isOpen, onClose, onSave, workout = null }) => {
                 value={rpe}
                 onChange={(e) => setRpe(e.target.value)}
                 placeholder="e.g. 8.5"
-                className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-sage-border bg-white px-3 py-2 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Date</label>
+              <label className="block text-xs font-bold text-sage-forest mb-1.5">Date</label>
               <input
                 type="date"
                 value={performedOn}
                 onChange={(e) => setPerformedOn(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-[#0B0F17] px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-sage-border bg-white px-3 py-2 text-sm text-sage-forest focus:border-sage-action focus:outline-none focus:ring-1 focus:ring-sage-action shadow-sm"
                 required
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+          {/* Instant E1RM Preview Banner */}
+          {calc1rm && (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-sage-surface border border-sage-border text-xs">
+              <span className="flex items-center gap-1.5 font-medium text-sage-forest">
+                <Zap className="h-4 w-4 text-sage-action" /> Est. 1-Rep Max Preview
+              </span>
+              <span className="font-black text-sage-action text-sm">{calc1rm} kg</span>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-sage-border">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+              className="rounded-xl px-4 py-2.5 text-xs font-semibold text-sage-muted hover:text-sage-forest hover:bg-sage-surface transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-2 text-xs font-semibold text-slate-950 shadow-md hover:opacity-90 active:scale-95 transition-all"
+              className="rounded-xl bg-sage-action hover:bg-sage-forest px-5 py-2.5 text-xs font-bold text-white shadow-card active:scale-95 transition-all"
             >
               {workout ? 'Save Changes' : 'Record Workout'}
             </button>

@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     health,
     nutrition,
     readiness,
+    targets,
     workouts,
 )
 
@@ -16,6 +17,7 @@ api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+api_router.include_router(targets.router, prefix="/targets", tags=["targets"])
 api_router.include_router(workouts.router, prefix="/workouts", tags=["workouts"])
 api_router.include_router(nutrition.router, prefix="/nutrition", tags=["nutrition"])
 api_router.include_router(readiness.router, prefix="/readiness", tags=["readiness"])

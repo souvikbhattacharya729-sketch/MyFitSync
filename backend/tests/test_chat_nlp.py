@@ -87,7 +87,8 @@ def test_nlp_nutrition_formats():
     # Food item with grams but no macros: never invent macros, store title and ask!
     res_food = parser.parse("ate 200g chicken")
     assert len(res_food.nutrition) == 1
-    assert "ate 200g chicken" in res_food.nutrition[0].meal_title
+    meal_t = res_food.nutrition[0].meal_title
+    assert meal_t is not None and "ate 200g chicken" in meal_t
     assert res_food.nutrition[0].calories is None
     assert res_food.nutrition[0].protein_g is None
     assert len(res_food.clarifications) == 1

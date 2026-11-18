@@ -49,10 +49,16 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         hashed_password=get_password_hash(user_in.password),
         name=user_in.name.strip(),
         bodyweight_kg=user_in.bodyweight_kg,
+        height_cm=user_in.height_cm,
+        age=user_in.age,
+        sex=user_in.sex,
+        activity_level=user_in.activity_level,
+        goal=user_in.goal,
         target_calories=user_in.target_calories,
         target_protein_g=user_in.target_protein_g,
         target_carbs_g=user_in.target_carbs_g,
         target_fat_g=user_in.target_fat_g,
+        hide_calorie_targets=user_in.hide_calorie_targets,
         timezone=user_in.timezone or "UTC",
     )
     db.add(user)
@@ -134,6 +140,16 @@ def update_current_user_profile(
         user.name = profile_update.name.strip()
     if profile_update.bodyweight_kg is not None:
         user.bodyweight_kg = profile_update.bodyweight_kg
+    if profile_update.height_cm is not None:
+        user.height_cm = profile_update.height_cm
+    if profile_update.age is not None:
+        user.age = profile_update.age
+    if profile_update.sex is not None:
+        user.sex = profile_update.sex
+    if profile_update.activity_level is not None:
+        user.activity_level = profile_update.activity_level
+    if profile_update.goal is not None:
+        user.goal = profile_update.goal
     if profile_update.target_calories is not None:
         user.target_calories = profile_update.target_calories
     if profile_update.target_protein_g is not None:
@@ -142,6 +158,8 @@ def update_current_user_profile(
         user.target_carbs_g = profile_update.target_carbs_g
     if profile_update.target_fat_g is not None:
         user.target_fat_g = profile_update.target_fat_g
+    if profile_update.hide_calorie_targets is not None:
+        user.hide_calorie_targets = profile_update.hide_calorie_targets
     if profile_update.timezone is not None:
         user.timezone = profile_update.timezone
 

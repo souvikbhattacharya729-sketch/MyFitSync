@@ -224,6 +224,11 @@ class ApiClient {
     });
   }
 
+  // --- Targets & Energy Expenditure ---
+  async getTargets() {
+    return this.request('/targets', { method: 'GET' });
+  }
+
   // --- Readiness Endpoints ---
   async getReadiness(params = {}) {
     const qs = new URLSearchParams(params).toString();

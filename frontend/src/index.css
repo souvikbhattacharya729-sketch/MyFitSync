@@ -4,23 +4,48 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
-  }
-  
-  html.light {
     color-scheme: light;
   }
-
-  body {
-    background-color: #0B0D10;
-    color: #F5F7FA;
+  
+  html, body, #root {
+    color-scheme: light !important;
+    background-color: #F6FAF7 !important;
+    color: #263D32 !important;
+    min-height: 100vh;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html.dark, body.dark {
+    color-scheme: light !important;
+    background-color: #F6FAF7 !important;
+    color: #263D32 !important;
   }
 }
 
-/* Accessible Electric Lime focus ring */
+/* Explicit Mint & Sage semantic token classes */
+.bg-sage-bg { background-color: #F6FAF7 !important; }
+.bg-sage-subtle { background-color: #EDF5EF !important; }
+.bg-sage-surface { background-color: #FFFFFF !important; }
+.bg-sage-card { background-color: #FFFFFF !important; }
+.bg-sage-mint { background-color: #DCEFE3 !important; }
+.bg-sage-sage { background-color: #A8D5B5 !important; }
+.bg-sage-action { background-color: #6BA985 !important; }
+.bg-sage-forest { background-color: #263D32 !important; }
+
+.text-sage-forest { color: #263D32 !important; }
+.text-sage-muted { color: #77847C !important; }
+.text-sage-action { color: #6BA985 !important; }
+
+.border-sage-border { border-color: #E5EDE7 !important; }
+.border-sage-sage { border-color: #A8D5B5 !important; }
+.border-sage-mint { border-color: #DCEFE3 !important; }
+.border-sage-action { border-color: #6BA985 !important; }
+
+/* Accessible Action Green focus ring */
 :focus-visible {
-  outline: 2px solid #C6FF3D;
+  outline: 2px solid #6BA985;
   outline-offset: 2px;
 }
 
@@ -34,18 +59,77 @@
   }
 }
 
-/* Custom gym-contrast scrollbars */
+/* Mint & Sage clean light scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0D10;
+  background: #EDF5EF;
 }
 ::-webkit-scrollbar-thumb {
-  background: #20252E;
+  background: #A8D5B5;
   border-radius: 9999px;
+  border: 2px solid #EDF5EF;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9AA3B2;
+  background: #6BA985;
 }
+
+/* 3D Interaction Utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-800 {
+  perspective: 800px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* 3D Floating Animation */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotateX(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotateX(1deg);
+  }
+}
+
+.animate-float {
+  animation: floatSlow 5s ease-in-out infinite;
+}
+
+/* Layered Glassmorphism Surface */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(229, 237, 231, 0.9);
+}
+
+.glass-pill {
+  background: rgba(220, 239, 227, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(168, 213, 181, 0.4);
+}
+
+/* 3D Card Hover Depth */
+.card-3d-interactive {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  transform: perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px);
+  will-change: transform;
+}
+
+.card-3d-interactive:hover {
+  box-shadow: 0 20px 40px -12px rgba(38, 61, 50, 0.12), 0 0 0 1px #A8D5B5;
+}
+

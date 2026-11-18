@@ -11,7 +11,7 @@ import {
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/chat', label: 'Chat Assistant', icon: MessageSquareCode },
+  { to: '/chat', label: 'AI Coach', icon: MessageSquareCode },
   { to: '/workouts', label: 'Workouts', icon: Dumbbell },
   { to: '/nutrition', label: 'Nutrition', icon: Utensils },
   { to: '/recovery', label: 'Recovery & Sleep', icon: Moon },
@@ -22,7 +22,7 @@ export const Sidebar = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-[#20252E] bg-[#0B0D10]/95 p-4 shrink-0 transition-colors duration-200">
+      <aside className="hidden md:flex w-64 flex-col border-r border-[#E5EDE7] bg-white/70 p-4 shrink-0 transition-colors duration-200 backdrop-blur-md shadow-sm">
         <nav className="flex flex-col gap-1.5" aria-label="Main Navigation">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -31,10 +31,10 @@ export const Sidebar = () => {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                  `flex items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
                     isActive
-                      ? 'bg-[#C6FF3D]/10 text-[#C6FF3D] font-bold border border-[#C6FF3D]/25 shadow-sm shadow-[#C6FF3D]/5'
-                      : 'text-[#9AA3B2] hover:text-[#F5F7FA] hover:bg-[#20252E]'
+                      ? 'bg-[#DCEFE3] text-[#263D32] border border-[#A8D5B5]/60 shadow-sm translate-x-1'
+                      : 'text-[#77847C] hover:text-[#263D32] hover:bg-[#EDF5EF]'
                   }`
                 }
               >
@@ -48,7 +48,7 @@ export const Sidebar = () => {
 
       {/* Mobile Bottom Navigation Bar */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-[#20252E] bg-[#0B0D10]/95 px-2 backdrop-blur-md"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-[#E5EDE7] bg-white/95 px-2 backdrop-blur-md shadow-lg"
         aria-label="Mobile Bottom Navigation"
       >
         {navItems.map((item) => {
@@ -58,8 +58,8 @@ export const Sidebar = () => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center min-w-[48px] min-h-[48px] py-1 text-[10px] font-medium transition-colors ${
-                  isActive ? 'text-[#C6FF3D] font-bold' : 'text-[#9AA3B2] hover:text-[#F5F7FA]'
+                `flex flex-col items-center justify-center min-w-[48px] min-h-[48px] py-1 text-[10px] font-semibold transition-colors ${
+                  isActive ? 'text-[#6BA985] font-bold' : 'text-[#77847C] hover:text-[#263D32]'
                 }`
               }
               aria-label={item.label}
