@@ -24,3 +24,17 @@ services:
         value: "7"
       - key: ALLOWED_ORIGINS
         value: "https://my-fit-sync.vercel.app,https://myfitsync.vercel.app,http://localhost:3000,http://localhost:5173"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: COACH_CRISIS_MESSAGE
+        sync: false
+      - key: COACH_ENABLED
+        value: "false"
+      - key: COACH_MODEL
+        value: qwen/qwen3.8-27b
+      - key: COACH_MAX_TOKENS
+        value: "600"
+      - key: COACH_DAILY_LIMIT
+        value: "20"
+      - key: COACH_GLOBAL_DAILY_LIMIT
+        value: "1000"

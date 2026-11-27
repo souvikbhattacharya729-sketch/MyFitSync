@@ -1,6 +1,6 @@
 import math
 from datetime import date, timedelta
-from typing import Dict, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 
 ACWR_DISCLAIMER = (
     "Disclaimer: Acute:Chronic Workload Ratio (ACWR) and related metrics are descriptive "
@@ -411,4 +411,63 @@ def macro_targets(
         "carbs_g": carbs_g,
         "carbs_kcal": carbs_kcal,
         "carbs_pct": carbs_pct,
+    }
+
+
+def calculate_user_targets(user: Any) -> Dict[str, Any]:
+    """
+    Computes BMR, TDEE, daily target calories, and macro targets for a user.
+    Reused across /targets endpoint and AI Coach context generation.
+    """
+    missing_fields = []
+    if not getattr(user, "bodyweight_kg", None) or user.bodyweight_kg <= 0:
+        missing_fields.append("bodyweight_kg")
+    if not getattr(user, "height_cm", None):
+        missing_fields.append("height_cm")
+    if not getattr(user, "age", None):
+        missing_fields.append("age")
+    if not getattr(user, "sex", None):
+        missing_fields.append("sex")
+    if not getattr(user, "activity_level", None):
+        missing_fields.append("activity_level")
+    if not getattr(user, "goal", None):
+        missing_fields.append("goal")
+
+    if missing_fields:
+        return {
+            "profile_complete": False,
+            "missing_fields": missing_fields,
+            "disclaimer": TARGETS_ESTIMATE_DISCLAIMER,
+            "hide_calorie_targets": getattr(user, "hide_calorie_targets", False),
+        }
+
+    user_bmr = bmr(
+        weight_kg=float(user.bodyweight_kg),
+        height_cm=float(user.height_cm),
+        age=int(user.age),
+        sex=str(user.sex),
+    )
+    user_tdee = tdee(user_bmr, str(user.activity_level))
+    target_res = daily_target(user_tdee, str(user.goal), str(user.sex))
+    cal_target = int(target_res["target_calories"])
+
+    macros_dict = macro_targets(
+        calories=float(cal_target),
+        weight_kg=float(user.bodyweight_kg),
+        goal=str(user.goal),
+    )
+
+    return {
+        "profile_complete": True,
+        "missing_fields": [],
+        "bmr": user_bmr,
+        "tdee": user_tdee,
+        "calorie_target": cal_target,
+        "raw_target_calories": float(target_res["raw_target"]),
+        "safe_floor_applied": bool(target_res["below_floor_flag"]),
+        "safe_floor_kcal": int(target_res["safe_floor"]),
+        "floor_warning": str(target_res["warning"]) if target_res["warning"] else None,
+        "macros": macros_dict,
+        "disclaimer": TARGETS_ESTIMATE_DISCLAIMER,
+        "hide_calorie_targets": getattr(user, "hide_calorie_targets", False),
     }
